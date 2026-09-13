@@ -1,6 +1,36 @@
-import { KeyRound, Laptop, LockKeyhole, ShieldCheck } from "lucide-react";
-
-import { Breadcrumbs } from "@/components/breadcrumbs";
+import { and, eq } from "drizzle-orm";
+import { communityNotice } from "@/components/access-notice";
 import { SettingsNav } from "@/components/settings-nav";
-export default function SecuritySettingsPage() { return <div className="site-container py-8 sm:py-10"><Breadcrumbs items={[{ label: "GuildHarbor", href: "/" }, { label: "Settings" }, { label: "Security" }]} /><div className="mt-6 grid items-start gap-5 lg:grid-cols-[240px_minmax(0,1fr)]"><SettingsNav active="security" /><div className="max-w-3xl space-y-4"><header className="surface p-5 sm:p-7"><h1 className="text-2xl font-extrabold text-text">Security</h1><p className="mt-2 text-sm text-text-muted">Manage credentials, two-factor authentication, recovery codes, and active sessions.</p></header><SecurityRow icon={LockKeyhole} title="Password" detail="Last changed 3 months ago" action="Change password" /><SecurityRow icon={ShieldCheck} title="Two-factor authentication" detail="Use a TOTP authenticator and encrypted recovery codes" action="Enable 2FA" accent /><SecurityRow icon={KeyRound} title="Recovery codes" detail="Generated after two-factor enrollment" action="View codes" /><section className="surface overflow-hidden"><div className="border-b border-border p-5"><h2 className="font-extrabold text-text">Active sessions</h2><p className="mt-1 text-xs text-text-muted">Revoke devices you no longer recognize.</p></div><div className="flex items-center gap-3 p-5"><Laptop className="size-5 text-category" /><div><strong className="text-sm text-text">Current browser</strong><p className="mt-1 text-xs text-text-muted">New York, United States · Active now</p></div><button className="button-danger ml-auto">Revoke others</button></div></section></div></div></div>; }
-function SecurityRow({ icon: Icon, title, detail, action, accent = false }: { icon: typeof LockKeyhole; title: string; detail: string; action: string; accent?: boolean }) { return <section className="surface flex flex-col gap-4 p-5 sm:flex-row sm:items-center"><span className={`grid size-11 place-items-center rounded-full ${accent ? "bg-trust/15 text-trust" : "bg-panel-strong text-text-muted"}`}><Icon className="size-5" /></span><div><h2 className="font-extrabold text-text">{title}</h2><p className="mt-1 text-xs text-text-muted">{detail}</p></div><button className="button-secondary sm:ml-auto">{action}</button></section>; }
+import { SecurityForm } from "@/components/security-form";
+import { requireMember } from "@/lib/session";
+import { createReadDatabase } from "@/db/client";
+import { accounts } from "@/db/schema";
+export default async function SecurityPage() {
+  const notice = await communityNotice();
+  if (notice) return notice;
+  const access = await requireMember();
+  const [credential] = await createReadDatabase()
+    .select({ id: accounts.id })
+    .from(accounts)
+    .where(
+      and(
+        eq(accounts.userId, access.user.id),
+        eq(accounts.providerId, "credential"),
+      ),
+    )
+    .limit(1);
+  return (
+    <div className="site-container py-8">
+      <div className="grid items-start gap-5 lg:grid-cols-[240px_minmax(0,1fr)]">
+        <SettingsNav active="security" />
+        <div className="max-w-3xl space-y-5">
+          <h1 className="text-3xl font-extrabold">Security</h1>
+          <SecurityForm
+            enabled={Boolean(access.user.twoFactorEnabled)}
+            hasPassword={Boolean(credential)}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}

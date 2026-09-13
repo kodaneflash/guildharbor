@@ -8,6 +8,7 @@ export default defineConfig({
   fullyParallel: true,
   use: {
     baseURL,
+    ignoreHTTPSErrors: process.env.PLAYWRIGHT_LOCAL_HTTPS === "1",
     trace: "retain-on-failure",
   },
   webServer: externalBaseUrl

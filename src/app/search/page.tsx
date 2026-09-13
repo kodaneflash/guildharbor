@@ -1,9 +1,55 @@
-import { Search } from "lucide-react";
-import type { Metadata } from "next";
-
-import { Breadcrumbs } from "@/components/breadcrumbs";
+import Link from "next/link";
+import { communityNotice } from "@/components/access-notice";
 import { ThreadRow } from "@/components/thread-row";
-import { demoThreads } from "@/data/demo";
-
-export const metadata: Metadata = { title: "Search" };
-export default async function SearchPage({ searchParams }: { searchParams: Promise<{ q?: string; type?: string }> }) { const { q = "", type = "all" } = await searchParams; const normalized = q.toLowerCase(); const matches = demoThreads.filter((thread) => (!normalized || thread.title.toLowerCase().includes(normalized) || thread.creator.toLowerCase().includes(normalized)) && (type === "all" || thread.type === type)); return <div className="site-container space-y-6 py-8 sm:py-10"><Breadcrumbs items={[{ label: "GuildHarbor", href: "/" }, { label: "Search" }]} /><div><h1 className="text-3xl font-black text-text">Search GuildHarbor</h1><p className="mt-2 text-sm text-text-muted">Threads, posts, members, forums, and lawful listings.</p></div><form className="surface grid gap-3 p-4 sm:grid-cols-[1fr_180px_auto]" role="search"><label className="relative"><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-text-muted" /><input className="field pl-10" name="q" defaultValue={q} placeholder="Search by title, text, or username" /></label><select name="type" defaultValue={type} className="field"><option value="all">All types</option><option value="discussion">Discussions</option><option value="selling">Selling</option><option value="buying">Buying</option><option value="service">Services</option></select><button className="button-primary">Search</button></form><section className="space-y-2"><div className="section-heading"><h2 className="text-sm font-extrabold uppercase tracking-[.08em]">{q ? `Results for “${q}”` : "Recent results"}</h2><span className="text-xs text-text-muted">{matches.length} results</span></div>{matches.length ? matches.map((thread) => <ThreadRow key={thread.id} thread={thread} />) : <div className="surface p-12 text-center"><Search className="mx-auto size-7 text-text-muted" /><p className="mt-3 text-sm font-bold text-text-secondary">No results found</p><p className="mt-1 text-xs text-text-muted">Try a shorter query or fewer filters.</p></div>}</section></div>; }
+import { communityThreads, pageNumber } from "@/db/queries/community";
+import { requireMember } from "@/lib/session";
+import { enforceRateLimit } from "@/lib/rate-limit";
+export default async function SearchPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; page?: string }>;
+}) {
+  const notice = await communityNotice();
+  if (notice) return notice;
+  const access = await requireMember();
+  await enforceRateLimit("search", access.user.id);
+  const { q = "", page: rawPage } = await searchParams;
+  const page = pageNumber(rawPage);
+  const matches = await communityThreads({ query: q, page });
+  return (
+    <div className="site-container space-y-6 py-8">
+      <h1 className="text-3xl font-extrabold">Search GuildHarbor</h1>
+      <p className="text-text-muted">Search thread titles and posts.</p>
+      <form className="surface flex gap-3 p-4" role="search">
+        <input
+          className="field"
+          aria-label="Search threads and posts"
+          name="q"
+          defaultValue={q}
+          maxLength={200}
+        />
+        <button className="button-primary">Search</button>
+      </form>
+      <section className="space-y-2">
+        {matches.map((thread) => (
+          <ThreadRow key={thread.id} thread={thread} />
+        ))}
+        {!matches.length && (
+          <p className="surface p-8 text-text-muted">No results found.</p>
+        )}
+      </section>
+      <nav className="flex gap-3" aria-label="Pagination">
+        {page > 1 && (
+          <Link href={`?q=${encodeURIComponent(q)}&page=${page - 1}`}>
+            Previous
+          </Link>
+        )}
+        {matches.length === 30 && (
+          <Link href={`?q=${encodeURIComponent(q)}&page=${page + 1}`}>
+            Next
+          </Link>
+        )}
+      </nav>
+    </div>
+  );
+}

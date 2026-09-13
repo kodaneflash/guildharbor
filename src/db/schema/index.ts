@@ -8,7 +8,6 @@ import {
   index,
   integer,
   jsonb,
-  numeric,
   pgEnum,
   pgTable,
   primaryKey,
@@ -50,9 +49,6 @@ export const accountStatusEnum = pgEnum("account_status", [
 ]);
 export const threadTypeEnum = pgEnum("thread_type", [
   "discussion",
-  "selling",
-  "buying",
-  "service",
   "announcement",
 ]);
 export const threadStatusEnum = pgEnum("thread_status", [
@@ -60,15 +56,6 @@ export const threadStatusEnum = pgEnum("thread_status", [
   "locked",
   "archived",
   "deleted",
-]);
-export const listingStatusEnum = pgEnum("listing_status", [
-  "draft",
-  "active",
-  "reserved",
-  "completed",
-  "cancelled",
-  "expired",
-  "removed",
 ]);
 export const vouchRatingEnum = pgEnum("vouch_rating", [
   "positive",
@@ -103,6 +90,7 @@ export const users = pgTable(
     username: citext("username"),
     displayUsername: text("display_username"),
     twoFactorEnabled: boolean("two_factor_enabled").default(false),
+    membershipStatus: text("membership_status").default("pending").notNull(),
     accountStatus: accountStatusEnum("account_status")
       .default("pending_email")
       .notNull(),
@@ -110,11 +98,18 @@ export const users = pgTable(
     updatedAt,
   },
   (table) => [
+    check(
+      "users_membership_status_valid",
+      sql`${table.membershipStatus} in ('pending', 'approved', 'rejected')`,
+    ),
     uniqueIndex("users_email_unique").on(table.email),
     uniqueIndex("users_username_unique")
       .on(table.username)
       .where(sql`${table.username} is not null`),
-    index("users_username_trgm_idx").using("gin", table.username.op("gin_trgm_ops")),
+    index("users_username_trgm_idx").using(
+      "gin",
+      table.username.op("gin_trgm_ops"),
+    ),
   ],
 );
 
@@ -209,7 +204,10 @@ export const roles = pgTable("roles", {
   id: uuid("id").defaultRandom().primaryKey(),
   key: text("key").notNull().unique(),
   name: text("name").notNull(),
-  permissions: text("permissions").array().default(sql`'{}'::text[]`).notNull(),
+  permissions: text("permissions")
+    .array()
+    .default(sql`'{}'::text[]`)
+    .notNull(),
   color: text("color"),
   createdAt,
   updatedAt,
@@ -226,7 +224,9 @@ export const profiles = pgTable(
     bannerUrl: text("banner_url"),
     telegramHandle: text("telegram_handle"),
     bio: text("bio").default("").notNull(),
-    signature: jsonb("signature").default({ type: "doc", content: [] }).notNull(),
+    signature: jsonb("signature")
+      .default({ type: "doc", content: [] })
+      .notNull(),
     primaryRoleId: uuid("primary_role_id").references(() => roles.id),
     reputation: integer("reputation").default(0).notNull(),
     vouchPositive: integer("vouch_positive").default(0).notNull(),
@@ -236,16 +236,27 @@ export const profiles = pgTable(
     postCount: integer("post_count").default(0).notNull(),
     likeCount: integer("like_count").default(0).notNull(),
     creditBalance: integer("credit_balance").default(0).notNull(),
-    joinedAt: timestamp("joined_at", { withTimezone: true }).defaultNow().notNull(),
+    joinedAt: timestamp("joined_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
     lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     updatedAt,
   },
   (table) => [
     check("profiles_reputation_nonnegative", sql`${table.reputation} >= 0`),
-    check("profiles_vouch_positive_nonnegative", sql`${table.vouchPositive} >= 0`),
-    check("profiles_vouch_neutral_nonnegative", sql`${table.vouchNeutral} >= 0`),
-    check("profiles_vouch_negative_nonnegative", sql`${table.vouchNegative} >= 0`),
+    check(
+      "profiles_vouch_positive_nonnegative",
+      sql`${table.vouchPositive} >= 0`,
+    ),
+    check(
+      "profiles_vouch_neutral_nonnegative",
+      sql`${table.vouchNeutral} >= 0`,
+    ),
+    check(
+      "profiles_vouch_negative_nonnegative",
+      sql`${table.vouchNegative} >= 0`,
+    ),
     check("profiles_threads_nonnegative", sql`${table.threadCount} >= 0`),
     check("profiles_posts_nonnegative", sql`${table.postCount} >= 0`),
     check("profiles_likes_nonnegative", sql`${table.likeCount} >= 0`),
@@ -256,8 +267,12 @@ export const profiles = pgTable(
 export const userRoles = pgTable(
   "user_roles",
   {
-    userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
-    roleId: uuid("role_id").references(() => roles.id, { onDelete: "cascade" }).notNull(),
+    userId: text("user_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+    roleId: uuid("role_id")
+      .references(() => roles.id, { onDelete: "cascade" })
+      .notNull(),
     grantedById: text("granted_by_id").references(() => users.id),
     createdAt,
   },
@@ -278,8 +293,12 @@ export const groups = pgTable("groups", {
 export const userGroups = pgTable(
   "user_groups",
   {
-    userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
-    groupId: uuid("group_id").references(() => groups.id, { onDelete: "cascade" }).notNull(),
+    userId: text("user_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+    groupId: uuid("group_id")
+      .references(() => groups.id, { onDelete: "cascade" })
+      .notNull(),
     createdAt,
   },
   (table) => [primaryKey({ columns: [table.userId, table.groupId] })],
@@ -288,8 +307,12 @@ export const userGroups = pgTable(
 export const usernameHistory = pgTable(
   "username_history",
   {
-    id: bigint("id", { mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
-    userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+    id: bigint("id", { mode: "number" })
+      .primaryKey()
+      .generatedAlwaysAsIdentity(),
+    userId: text("user_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
     oldUsername: citext("old_username").notNull(),
     newUsername: citext("new_username").notNull(),
     changedById: text("changed_by_id").references(() => users.id),
@@ -312,7 +335,9 @@ export const categories = pgTable("categories", {
 export const forums = pgTable(
   "forums",
   {
-    id: bigint("id", { mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
+    id: bigint("id", { mode: "number" })
+      .primaryKey()
+      .generatedAlwaysAsIdentity(),
     categoryId: bigint("category_id", { mode: "number" })
       .references(() => categories.id, { onDelete: "cascade" })
       .notNull(),
@@ -348,9 +373,13 @@ export const forums = pgTable(
 
 export const forumAccessRules = pgTable("forum_access_rules", {
   id: bigint("id", { mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
-  forumId: bigint("forum_id", { mode: "number" }).references(() => forums.id, { onDelete: "cascade" }).notNull(),
+  forumId: bigint("forum_id", { mode: "number" })
+    .references(() => forums.id, { onDelete: "cascade" })
+    .notNull(),
   roleId: uuid("role_id").references(() => roles.id, { onDelete: "cascade" }),
-  groupId: uuid("group_id").references(() => groups.id, { onDelete: "cascade" }),
+  groupId: uuid("group_id").references(() => groups.id, {
+    onDelete: "cascade",
+  }),
   canRead: boolean("can_read").default(false).notNull(),
   canCreateThread: boolean("can_create_thread").default(false).notNull(),
   canReply: boolean("can_reply").default(false).notNull(),
@@ -360,9 +389,15 @@ export const forumAccessRules = pgTable("forum_access_rules", {
 export const threads = pgTable(
   "threads",
   {
-    id: bigint("id", { mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
-    forumId: bigint("forum_id", { mode: "number" }).references(() => forums.id, { onDelete: "restrict" }).notNull(),
-    creatorId: text("creator_id").references(() => users.id, { onDelete: "restrict" }).notNull(),
+    id: bigint("id", { mode: "number" })
+      .primaryKey()
+      .generatedAlwaysAsIdentity(),
+    forumId: bigint("forum_id", { mode: "number" })
+      .references(() => forums.id, { onDelete: "restrict" })
+      .notNull(),
+    creatorId: text("creator_id")
+      .references(() => users.id, { onDelete: "restrict" })
+      .notNull(),
     slug: text("slug").notNull(),
     title: text("title").notNull(),
     type: threadTypeEnum("type").default("discussion").notNull(),
@@ -371,7 +406,9 @@ export const threads = pgTable(
     replyCount: integer("reply_count").default(0).notNull(),
     viewCount: integer("view_count").default(0).notNull(),
     latestPostId: bigint("latest_post_id", { mode: "number" }),
-    latestPostAt: timestamp("latest_post_at", { withTimezone: true }).defaultNow().notNull(),
+    latestPostAt: timestamp("latest_post_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
     latestPosterId: text("latest_poster_id").references(() => users.id),
     searchVector: tsvector("search_vector").generatedAlwaysAs(
       sql`to_tsvector('english', coalesce(${sql.raw("title")}, ''))`,
@@ -386,7 +423,10 @@ export const threads = pgTable(
       .on(table.forumId, table.isPinned, table.latestPostAt, table.id)
       .where(sql`${table.deletedAt} is null`),
     index("threads_search_idx").using("gin", table.searchVector),
-    index("threads_title_trgm_idx").using("gin", table.title.op("gin_trgm_ops")),
+    index("threads_title_trgm_idx").using(
+      "gin",
+      table.title.op("gin_trgm_ops"),
+    ),
     check("threads_reply_count_nonnegative", sql`${table.replyCount} >= 0`),
     check("threads_view_count_nonnegative", sql`${table.viewCount} >= 0`),
   ],
@@ -395,9 +435,15 @@ export const threads = pgTable(
 export const posts = pgTable(
   "posts",
   {
-    id: bigint("id", { mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
-    threadId: bigint("thread_id", { mode: "number" }).references(() => threads.id, { onDelete: "cascade" }).notNull(),
-    authorId: text("author_id").references(() => users.id, { onDelete: "restrict" }).notNull(),
+    id: bigint("id", { mode: "number" })
+      .primaryKey()
+      .generatedAlwaysAsIdentity(),
+    threadId: bigint("thread_id", { mode: "number" })
+      .references(() => threads.id, { onDelete: "cascade" })
+      .notNull(),
+    authorId: text("author_id")
+      .references(() => users.id, { onDelete: "restrict" })
+      .notNull(),
     replyToPostId: bigint("reply_to_post_id", { mode: "number" }),
     content: jsonb("content").notNull(),
     plainText: text("plain_text").notNull(),
@@ -420,8 +466,12 @@ export const posts = pgTable(
 
 export const postEditHistory = pgTable("post_edit_history", {
   id: bigint("id", { mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
-  postId: bigint("post_id", { mode: "number" }).references(() => posts.id, { onDelete: "cascade" }).notNull(),
-  editorId: text("editor_id").references(() => users.id, { onDelete: "restrict" }).notNull(),
+  postId: bigint("post_id", { mode: "number" })
+    .references(() => posts.id, { onDelete: "cascade" })
+    .notNull(),
+  editorId: text("editor_id")
+    .references(() => users.id, { onDelete: "restrict" })
+    .notNull(),
   previousContent: jsonb("previous_content").notNull(),
   newContent: jsonb("new_content").notNull(),
   reason: text("reason").notNull(),
@@ -431,8 +481,12 @@ export const postEditHistory = pgTable("post_edit_history", {
 export const threadReads = pgTable(
   "thread_reads",
   {
-    userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
-    threadId: bigint("thread_id", { mode: "number" }).references(() => threads.id, { onDelete: "cascade" }).notNull(),
+    userId: text("user_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+    threadId: bigint("thread_id", { mode: "number" })
+      .references(() => threads.id, { onDelete: "cascade" })
+      .notNull(),
     lastReadPostId: bigint("last_read_post_id", { mode: "number" }),
     readAt: timestamp("read_at", { withTimezone: true }).defaultNow().notNull(),
   },
@@ -442,8 +496,12 @@ export const threadReads = pgTable(
 export const threadSubscriptions = pgTable(
   "thread_subscriptions",
   {
-    userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
-    threadId: bigint("thread_id", { mode: "number" }).references(() => threads.id, { onDelete: "cascade" }).notNull(),
+    userId: text("user_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+    threadId: bigint("thread_id", { mode: "number" })
+      .references(() => threads.id, { onDelete: "cascade" })
+      .notNull(),
     emailNotifications: boolean("email_notifications").default(false).notNull(),
     createdAt,
   },
@@ -453,7 +511,9 @@ export const threadSubscriptions = pgTable(
 export const threadViewBuckets = pgTable(
   "thread_view_buckets",
   {
-    threadId: bigint("thread_id", { mode: "number" }).references(() => threads.id, { onDelete: "cascade" }).notNull(),
+    threadId: bigint("thread_id", { mode: "number" })
+      .references(() => threads.id, { onDelete: "cascade" })
+      .notNull(),
     day: date("day").notNull(),
     viewCount: integer("view_count").default(0).notNull(),
     rolledUpAt: timestamp("rolled_up_at", { withTimezone: true }),
@@ -464,37 +524,23 @@ export const threadViewBuckets = pgTable(
   ],
 );
 
-export const marketplaceListings = pgTable(
-  "marketplace_listings",
-  {
-    threadId: bigint("thread_id", { mode: "number" }).primaryKey().references(() => threads.id, { onDelete: "cascade" }),
-    status: listingStatusEnum("status").default("draft").notNull(),
-    category: text("category").notNull(),
-    price: numeric("price", { precision: 12, scale: 2 }),
-    currency: text("currency"),
-    fulfillment: text("fulfillment").notNull(),
-    condition: text("condition"),
-    lawfulAttestation: boolean("lawful_attestation").notNull(),
-    searchText: text("search_text").default("").notNull(),
-    completedAt: timestamp("completed_at", { withTimezone: true }),
-    createdAt,
-    updatedAt,
-  },
-  (table) => [
-    index("marketplace_listing_idx").on(table.status, table.category, table.threadId),
-    index("marketplace_search_trgm_idx").using("gin", table.searchText.op("gin_trgm_ops")),
-  ],
-);
-
 export const reputationEvents = pgTable(
   "reputation_events",
   {
-    id: bigint("id", { mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
-    giverId: text("giver_id").references(() => users.id, { onDelete: "restrict" }).notNull(),
-    recipientId: text("recipient_id").references(() => users.id, { onDelete: "restrict" }).notNull(),
+    id: bigint("id", { mode: "number" })
+      .primaryKey()
+      .generatedAlwaysAsIdentity(),
+    giverId: text("giver_id")
+      .references(() => users.id, { onDelete: "restrict" })
+      .notNull(),
+    recipientId: text("recipient_id")
+      .references(() => users.id, { onDelete: "restrict" })
+      .notNull(),
     value: integer("value").notNull(),
     reason: text("reason").notNull(),
-    threadId: bigint("thread_id", { mode: "number" }).references(() => threads.id),
+    threadId: bigint("thread_id", { mode: "number" }).references(
+      () => threads.id,
+    ),
     postId: bigint("post_id", { mode: "number" }).references(() => posts.id),
     reversalOfId: bigint("reversal_of_id", { mode: "number" }),
     createdAt,
@@ -509,30 +555,42 @@ export const reputationEvents = pgTable(
 export const vouches = pgTable(
   "vouches",
   {
-    id: bigint("id", { mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
-    authorId: text("author_id").references(() => users.id, { onDelete: "restrict" }).notNull(),
-    recipientId: text("recipient_id").references(() => users.id, { onDelete: "restrict" }).notNull(),
+    id: bigint("id", { mode: "number" })
+      .primaryKey()
+      .generatedAlwaysAsIdentity(),
+    authorId: text("author_id")
+      .references(() => users.id, { onDelete: "restrict" })
+      .notNull(),
+    recipientId: text("recipient_id")
+      .references(() => users.id, { onDelete: "restrict" })
+      .notNull(),
     rating: vouchRatingEnum("rating").notNull(),
     comment: text("comment").notNull(),
-    threadId: bigint("thread_id", { mode: "number" }).references(() => threads.id),
-    listingThreadId: bigint("listing_thread_id", { mode: "number" }).references(() => marketplaceListings.threadId),
+    threadId: bigint("thread_id", { mode: "number" }).references(
+      () => threads.id,
+    ),
     status: moderationStatusEnum("status").default("actioned").notNull(),
     createdAt,
     updatedAt,
   },
   (table) => [
     check("vouches_no_self", sql`${table.authorId} <> ${table.recipientId}`),
-    uniqueIndex("vouches_listing_reference_unique")
-      .on(table.authorId, table.recipientId, table.listingThreadId)
-      .where(sql`${table.listingThreadId} is not null`),
-    index("vouches_recipient_idx").on(table.recipientId, table.rating, table.id),
+    index("vouches_recipient_idx").on(
+      table.recipientId,
+      table.rating,
+      table.id,
+    ),
   ],
 );
 
 export const vouchDisputes = pgTable("vouch_disputes", {
   id: bigint("id", { mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
-  vouchId: bigint("vouch_id", { mode: "number" }).references(() => vouches.id, { onDelete: "cascade" }).notNull(),
-  reporterId: text("reporter_id").references(() => users.id, { onDelete: "restrict" }).notNull(),
+  vouchId: bigint("vouch_id", { mode: "number" })
+    .references(() => vouches.id, { onDelete: "cascade" })
+    .notNull(),
+  reporterId: text("reporter_id")
+    .references(() => users.id, { onDelete: "restrict" })
+    .notNull(),
   reason: text("reason").notNull(),
   status: moderationStatusEnum("status").default("open").notNull(),
   resolution: text("resolution"),
@@ -554,8 +612,12 @@ export const badges = pgTable("badges", {
 export const userBadges = pgTable(
   "user_badges",
   {
-    userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
-    badgeId: uuid("badge_id").references(() => badges.id, { onDelete: "cascade" }).notNull(),
+    userId: text("user_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+    badgeId: uuid("badge_id")
+      .references(() => badges.id, { onDelete: "cascade" })
+      .notNull(),
     awardedById: text("awarded_by_id").references(() => users.id),
     revokedAt: timestamp("revoked_at", { withTimezone: true }),
     position: integer("position").default(0).notNull(),
@@ -594,8 +656,12 @@ export const conversations = pgTable(
 export const conversationMembers = pgTable(
   "conversation_members",
   {
-    conversationId: uuid("conversation_id").references(() => conversations.id, { onDelete: "cascade" }).notNull(),
-    userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+    conversationId: uuid("conversation_id")
+      .references(() => conversations.id, { onDelete: "cascade" })
+      .notNull(),
+    userId: text("user_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
     lastReadMessageId: bigint("last_read_message_id", { mode: "number" }),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
     mutedUntil: timestamp("muted_until", { withTimezone: true }),
@@ -603,16 +669,26 @@ export const conversationMembers = pgTable(
   },
   (table) => [
     primaryKey({ columns: [table.conversationId, table.userId] }),
-    index("conversation_members_inbox_idx").on(table.userId, table.archivedAt, table.conversationId),
+    index("conversation_members_inbox_idx").on(
+      table.userId,
+      table.archivedAt,
+      table.conversationId,
+    ),
   ],
 );
 
 export const messages = pgTable(
   "messages",
   {
-    id: bigint("id", { mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
-    conversationId: uuid("conversation_id").references(() => conversations.id, { onDelete: "cascade" }).notNull(),
-    senderId: text("sender_id").references(() => users.id, { onDelete: "restrict" }).notNull(),
+    id: bigint("id", { mode: "number" })
+      .primaryKey()
+      .generatedAlwaysAsIdentity(),
+    conversationId: uuid("conversation_id")
+      .references(() => conversations.id, { onDelete: "cascade" })
+      .notNull(),
+    senderId: text("sender_id")
+      .references(() => users.id, { onDelete: "restrict" })
+      .notNull(),
     replyToMessageId: bigint("reply_to_message_id", { mode: "number" }),
     clientRequestId: uuid("client_request_id").notNull(),
     content: jsonb("content").notNull(),
@@ -623,16 +699,26 @@ export const messages = pgTable(
     updatedAt,
   },
   (table) => [
-    uniqueIndex("messages_idempotency_unique").on(table.senderId, table.clientRequestId),
-    index("messages_conversation_cursor_idx").on(table.conversationId, table.id),
+    uniqueIndex("messages_idempotency_unique").on(
+      table.senderId,
+      table.clientRequestId,
+    ),
+    index("messages_conversation_cursor_idx").on(
+      table.conversationId,
+      table.id,
+    ),
   ],
 );
 
 export const userBlocks = pgTable(
   "user_blocks",
   {
-    blockerId: text("blocker_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
-    blockedId: text("blocked_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+    blockerId: text("blocker_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+    blockedId: text("blocked_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
     createdAt,
   },
   (table) => [
@@ -644,23 +730,37 @@ export const userBlocks = pgTable(
 export const notifications = pgTable(
   "notifications",
   {
-    id: bigint("id", { mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
-    userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
-    actorId: text("actor_id").references(() => users.id, { onDelete: "set null" }),
+    id: bigint("id", { mode: "number" })
+      .primaryKey()
+      .generatedAlwaysAsIdentity(),
+    userId: text("user_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+    actorId: text("actor_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
     type: text("type").notNull(),
     title: text("title").notNull(),
     href: text("href").notNull(),
     readAt: timestamp("read_at", { withTimezone: true }),
     createdAt,
   },
-  (table) => [index("notifications_user_unread_idx").on(table.userId, table.readAt, table.id)],
+  (table) => [
+    index("notifications_user_unread_idx").on(
+      table.userId,
+      table.readAt,
+      table.id,
+    ),
+  ],
 );
 
 export const attachments = pgTable(
   "attachments",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    ownerId: text("owner_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+    ownerId: text("owner_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
     state: attachmentStateEnum("state").default("pending").notNull(),
     purpose: text("purpose").notNull(),
     storageKey: text("storage_key").notNull().unique(),
@@ -673,16 +773,27 @@ export const attachments = pgTable(
     updatedAt,
   },
   (table) => [
-    index("attachments_owner_state_idx").on(table.ownerId, table.state, table.createdAt),
-    check("attachments_size_valid", sql`${table.byteSize} > 0 and ${table.byteSize} <= 10485760`),
+    index("attachments_owner_state_idx").on(
+      table.ownerId,
+      table.state,
+      table.createdAt,
+    ),
+    check(
+      "attachments_size_valid",
+      sql`${table.byteSize} > 0 and ${table.byteSize} <= 10485760`,
+    ),
   ],
 );
 
 export const postAttachments = pgTable(
   "post_attachments",
   {
-    postId: bigint("post_id", { mode: "number" }).references(() => posts.id, { onDelete: "cascade" }).notNull(),
-    attachmentId: uuid("attachment_id").references(() => attachments.id, { onDelete: "cascade" }).notNull(),
+    postId: bigint("post_id", { mode: "number" })
+      .references(() => posts.id, { onDelete: "cascade" })
+      .notNull(),
+    attachmentId: uuid("attachment_id")
+      .references(() => attachments.id, { onDelete: "cascade" })
+      .notNull(),
     position: integer("position").default(0).notNull(),
   },
   (table) => [primaryKey({ columns: [table.postId, table.attachmentId] })],
@@ -691,8 +802,12 @@ export const postAttachments = pgTable(
 export const messageAttachments = pgTable(
   "message_attachments",
   {
-    messageId: bigint("message_id", { mode: "number" }).references(() => messages.id, { onDelete: "cascade" }).notNull(),
-    attachmentId: uuid("attachment_id").references(() => attachments.id, { onDelete: "cascade" }).notNull(),
+    messageId: bigint("message_id", { mode: "number" })
+      .references(() => messages.id, { onDelete: "cascade" })
+      .notNull(),
+    attachmentId: uuid("attachment_id")
+      .references(() => attachments.id, { onDelete: "cascade" })
+      .notNull(),
     position: integer("position").default(0).notNull(),
   },
   (table) => [primaryKey({ columns: [table.messageId, table.attachmentId] })],
@@ -701,12 +816,22 @@ export const messageAttachments = pgTable(
 export const reports = pgTable(
   "reports",
   {
-    id: bigint("id", { mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
-    reporterId: text("reporter_id").references(() => users.id, { onDelete: "restrict" }).notNull(),
+    id: bigint("id", { mode: "number" })
+      .primaryKey()
+      .generatedAlwaysAsIdentity(),
+    reporterId: text("reporter_id")
+      .references(() => users.id, { onDelete: "restrict" })
+      .notNull(),
     targetUserId: text("target_user_id").references(() => users.id),
-    targetThreadId: bigint("target_thread_id", { mode: "number" }).references(() => threads.id),
-    targetPostId: bigint("target_post_id", { mode: "number" }).references(() => posts.id),
-    targetMessageId: bigint("target_message_id", { mode: "number" }).references(() => messages.id),
+    targetThreadId: bigint("target_thread_id", { mode: "number" }).references(
+      () => threads.id,
+    ),
+    targetPostId: bigint("target_post_id", { mode: "number" }).references(
+      () => posts.id,
+    ),
+    targetMessageId: bigint("target_message_id", { mode: "number" }).references(
+      () => messages.id,
+    ),
     category: text("category").notNull(),
     reason: text("reason").notNull(),
     status: moderationStatusEnum("status").default("open").notNull(),
@@ -715,7 +840,12 @@ export const reports = pgTable(
     updatedAt,
   },
   (table) => [
-    index("reports_queue_idx").on(table.status, table.priority, table.createdAt, table.id),
+    index("reports_queue_idx").on(
+      table.status,
+      table.priority,
+      table.createdAt,
+      table.id,
+    ),
     check(
       "reports_exactly_one_target",
       sql`num_nonnulls(${table.targetUserId}, ${table.targetThreadId}, ${table.targetPostId}, ${table.targetMessageId}) = 1`,
@@ -725,9 +855,13 @@ export const reports = pgTable(
 
 export const moderationActions = pgTable("moderation_actions", {
   id: bigint("id", { mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
-  actorId: text("actor_id").references(() => users.id, { onDelete: "restrict" }).notNull(),
+  actorId: text("actor_id")
+    .references(() => users.id, { onDelete: "restrict" })
+    .notNull(),
   subjectUserId: text("subject_user_id").references(() => users.id),
-  reportId: bigint("report_id", { mode: "number" }).references(() => reports.id),
+  reportId: bigint("report_id", { mode: "number" }).references(
+    () => reports.id,
+  ),
   action: text("action").notNull(),
   reason: text("reason").notNull(),
   metadata: jsonb("metadata").default({}).notNull(),
@@ -738,25 +872,43 @@ export const moderationActions = pgTable("moderation_actions", {
 export const userRestrictions = pgTable(
   "user_restrictions",
   {
-    id: bigint("id", { mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
-    userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
-    issuedById: text("issued_by_id").references(() => users.id, { onDelete: "restrict" }).notNull(),
+    id: bigint("id", { mode: "number" })
+      .primaryKey()
+      .generatedAlwaysAsIdentity(),
+    userId: text("user_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+    issuedById: text("issued_by_id")
+      .references(() => users.id, { onDelete: "restrict" })
+      .notNull(),
     type: text("type").notNull(),
     scope: text("scope").notNull(),
     reason: text("reason").notNull(),
-    startsAt: timestamp("starts_at", { withTimezone: true }).defaultNow().notNull(),
+    startsAt: timestamp("starts_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
     endsAt: timestamp("ends_at", { withTimezone: true }),
     revokedAt: timestamp("revoked_at", { withTimezone: true }),
     createdAt,
   },
-  (table) => [index("user_restrictions_active_idx").on(table.userId, table.endsAt, table.revokedAt)],
+  (table) => [
+    index("user_restrictions_active_idx").on(
+      table.userId,
+      table.endsAt,
+      table.revokedAt,
+    ),
+  ],
 );
 
 export const creditLedgerEntries = pgTable(
   "credit_ledger_entries",
   {
-    id: bigint("id", { mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
-    userId: text("user_id").references(() => users.id, { onDelete: "restrict" }).notNull(),
+    id: bigint("id", { mode: "number" })
+      .primaryKey()
+      .generatedAlwaysAsIdentity(),
+    userId: text("user_id")
+      .references(() => users.id, { onDelete: "restrict" })
+      .notNull(),
     amount: integer("amount").notNull(),
     balanceAfter: integer("balance_after").notNull(),
     reason: text("reason").notNull(),

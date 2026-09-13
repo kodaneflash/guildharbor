@@ -5,7 +5,10 @@ import { z } from "zod";
 const optionalUrl = z.string().url().optional().or(z.literal(""));
 
 const environmentSchema = z.object({
-  NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+  NODE_ENV: z
+    .enum(["development", "test", "production"])
+    .default("development"),
+  COMMUNITY_ACCESS_MODE: z.enum(["public", "private"]).default("private"),
   DATABASE_URL: optionalUrl,
   DATABASE_URL_UNPOOLED: optionalUrl,
   BETTER_AUTH_SECRET: z.string().min(32).optional(),
@@ -20,6 +23,7 @@ const environmentSchema = z.object({
   APPLE_KEY_ID: z.string().optional(),
   APPLE_PRIVATE_KEY: z.string().optional(),
   APPLE_APP_BUNDLE_IDENTIFIER: z.string().optional(),
+  TURNSTILE_SECRET_KEY: z.string().optional(),
   R2_ACCOUNT_ID: z.string().optional(),
   R2_ACCESS_KEY_ID: z.string().optional(),
   R2_SECRET_ACCESS_KEY: z.string().optional(),
@@ -32,7 +36,9 @@ const environmentSchema = z.object({
 const parsedEnvironment = environmentSchema.safeParse(process.env);
 
 if (!parsedEnvironment.success) {
-  throw new Error(`Invalid server environment: ${z.prettifyError(parsedEnvironment.error)}`);
+  throw new Error(
+    `Invalid server environment: ${z.prettifyError(parsedEnvironment.error)}`,
+  );
 }
 
 export const env = parsedEnvironment.data;
@@ -43,9 +49,9 @@ export const isDatabaseConfigured = Boolean(
 
 export const isAppleConfigured = Boolean(
   env.APPLE_CLIENT_ID &&
-    env.APPLE_TEAM_ID &&
-    env.APPLE_KEY_ID &&
-    env.APPLE_PRIVATE_KEY,
+  env.APPLE_TEAM_ID &&
+  env.APPLE_KEY_ID &&
+  env.APPLE_PRIVATE_KEY,
 );
 
 export const isGoogleConfigured = Boolean(
@@ -54,7 +60,7 @@ export const isGoogleConfigured = Boolean(
 
 export const isR2Configured = Boolean(
   env.R2_ACCOUNT_ID &&
-    env.R2_ACCESS_KEY_ID &&
-    env.R2_SECRET_ACCESS_KEY &&
-    env.R2_BUCKET,
+  env.R2_ACCESS_KEY_ID &&
+  env.R2_SECRET_ACCESS_KEY &&
+  env.R2_BUCKET,
 );

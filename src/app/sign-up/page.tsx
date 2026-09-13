@@ -1,3 +1,4 @@
+import { communityAccessMode } from "@/lib/community-access";
 import type { Metadata } from "next";
 
 import { SignUpForm } from "@/components/auth-form";
@@ -11,6 +12,7 @@ export const metadata: Metadata = { title: "Create account", robots: { index: fa
 export default function SignUpPage() {
   return (
     <SignUpForm
+      requiresApproval={communityAccessMode() === "private"}
       isAppleConfigured={isAppleConfigured}
       isConfigured={isDatabaseConfigured}
       isGoogleConfigured={isGoogleConfigured}

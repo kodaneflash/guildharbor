@@ -1,5 +1,5 @@
-import { demoThreads, findForum } from "@/data/demo";
-
+import { memberApiAccess, privateHeaders } from "@/lib/api-access";
+import { findForum, communityThreads } from "@/db/queries/community";
 function escapeXml(value: string) {
   return value
     .replaceAll("&", "&amp;")
@@ -8,29 +8,32 @@ function escapeXml(value: string) {
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&apos;");
 }
-
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ feed: string }> },
 ) {
+  const access = await memberApiAccess(request);
+  if (access instanceof Response) return access;
   const { feed } = await params;
-  if (!feed.endsWith(".xml")) return new Response("Not found", { status: 404 });
-  const forumSlug = feed.slice(0, -4);
-  const forum = findForum(forumSlug);
-  if (!forum) return new Response("Not found", { status: 404 });
+  if (!feed.endsWith(".xml"))
+    return new Response(null, { status: 404, headers: privateHeaders });
+  const forum = await findForum(feed.slice(0, -4));
+  if (!forum)
+    return new Response(null, { status: 404, headers: privateHeaders });
   const origin = new URL(request.url).origin;
-  const items = demoThreads
-    .filter((thread) => thread.forumSlug === forumSlug)
+  const items = (await communityThreads({ forumId: forum.id }))
     .map(
       (thread) =>
-        `<item><title>${escapeXml(thread.title)}</title><link>${origin}/threads/${thread.id}/${thread.slug}</link><guid>${origin}/threads/${thread.id}/${thread.slug}</guid><description>Started by ${escapeXml(thread.creator)} with ${thread.replies} replies.</description></item>`,
+        `<item><title>${escapeXml(thread.title)}</title><link>${escapeXml(`${origin}/threads/${thread.id}/${thread.slug}`)}</link><guid>${escapeXml(`${origin}/threads/${thread.id}/${thread.slug}`)}</guid></item>`,
     )
     .join("");
-  const xml = `<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>${escapeXml(forum.name)} · GuildHarbor</title><link>${origin}/forums/${forumSlug}</link><description>${escapeXml(forum.description)}</description>${items}</channel></rss>`;
-  return new Response(xml, {
-    headers: {
-      "Content-Type": "application/rss+xml; charset=utf-8",
-      "Cache-Control": "public, max-age=300, stale-while-revalidate=3600",
+  return new Response(
+    `<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>${escapeXml(forum.title)}</title><link>${escapeXml(`${origin}/forums/${forum.slug}`)}</link><description>${escapeXml(forum.description)}</description>${items}</channel></rss>`,
+    {
+      headers: {
+        ...privateHeaders,
+        "Content-Type": "application/rss+xml; charset=utf-8",
+      },
     },
-  });
+  );
 }

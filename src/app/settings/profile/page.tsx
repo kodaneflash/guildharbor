@@ -1,4 +1,41 @@
-import { Breadcrumbs } from "@/components/breadcrumbs";
+import { eq } from "drizzle-orm";
+import { communityNotice } from "@/components/access-notice";
 import { SettingsNav } from "@/components/settings-nav";
-export default function ProfileSettingsPage() { return <div className="site-container py-8 sm:py-10"><Breadcrumbs items={[{ label: "GuildHarbor", href: "/" }, { label: "Settings" }, { label: "Profile" }]} /><div className="mt-6 grid items-start gap-5 lg:grid-cols-[240px_minmax(0,1fr)]"><SettingsNav active="profile" /><form className="surface max-w-3xl space-y-5 p-5 sm:p-7"><div><h1 className="text-2xl font-extrabold text-text">Profile settings</h1><p className="mt-2 text-sm text-text-muted">Control the public information shown on your profile and forum posts.</p></div><div className="grid gap-4 sm:grid-cols-2"><FormField label="Display name" name="displayName" defaultValue="Aster" /><FormField label="Telegram handle (optional)" name="telegram" defaultValue="@asterworks" /></div><label className="block"><span className="mb-2 block text-xs font-bold text-text-secondary">About</span><textarea className="field min-h-32 resize-y" name="bio" maxLength={1500} defaultValue="Independent product designer and TypeScript developer." /></label><label className="block"><span className="mb-2 block text-xs font-bold text-text-secondary">Signature</span><textarea className="field min-h-24 resize-y" name="signature" maxLength={500} defaultValue="Build for people first." /></label><div className="flex justify-end"><button className="button-primary">Save profile</button></div></form></div></div>; }
-function FormField({ label, name, defaultValue }: { label: string; name: string; defaultValue: string }) { return <label><span className="mb-2 block text-xs font-bold text-text-secondary">{label}</span><input className="field" name={name} defaultValue={defaultValue} /></label>; }
+import { AvatarUpload } from "@/components/avatar-upload";
+import { ProfileForm } from "@/components/profile-form";
+import { requireMember } from "@/lib/session";
+import { createReadDatabase } from "@/db/client";
+import { profiles } from "@/db/schema";
+export default async function ProfileSettingsPage() {
+  const notice = await communityNotice();
+  if (notice) return notice;
+  const access = await requireMember();
+  const [profile] = await createReadDatabase()
+    .select()
+    .from(profiles)
+    .where(eq(profiles.userId, access.user.id))
+    .limit(1);
+  if (!profile) throw new Error("Account profile is missing.");
+  return (
+    <div className="site-container py-8">
+      <div className="grid items-start gap-5 lg:grid-cols-[240px_minmax(0,1fr)]">
+        <SettingsNav active="profile" />
+        <div className="max-w-3xl space-y-5">
+          <h1 className="text-3xl font-extrabold">Profile settings</h1>
+          <p className="text-text-muted">
+            Your profile is visible to community members.
+          </p>
+          <AvatarUpload
+            username={access.user.username!}
+            avatarUrl={profile.avatarUrl ?? undefined}
+          />
+          <ProfileForm
+            displayName={profile.displayName || access.user.username!}
+            telegramHandle={profile.telegramHandle ?? ""}
+            bio={profile.bio}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}

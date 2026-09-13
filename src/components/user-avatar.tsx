@@ -1,4 +1,7 @@
+"use client";
+
 import Image from "next/image";
+import { useState } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -12,7 +15,8 @@ const avatarTones = [
 
 function toneFor(seed: string) {
   return avatarTones[
-    [...seed].reduce((total, character) => total + character.charCodeAt(0), 0) % avatarTones.length
+    [...seed].reduce((total, character) => total + character.charCodeAt(0), 0) %
+      avatarTones.length
   ];
 }
 
@@ -29,6 +33,7 @@ export function UserAvatar({
   size?: "sm" | "md" | "lg" | "xl";
   className?: string;
 }) {
+  const [failedSrc, setFailedSrc] = useState<string>();
   const sizeClass = {
     sm: "size-8 text-[10px]",
     md: "size-11 text-xs",
@@ -46,16 +51,28 @@ export function UserAvatar({
         className,
       )}
     >
-      {src ? (
+      {src?.startsWith("/api/files/") && src !== failedSrc ? (
         <Image
+          unoptimized
           src={src}
           alt=""
           fill
           loading={eager ? "eager" : "lazy"}
-          sizes={size === "xl" ? "160px" : size === "lg" ? "128px" : size === "md" ? "44px" : "32px"}
+          sizes={
+            size === "xl"
+              ? "160px"
+              : size === "lg"
+                ? "128px"
+                : size === "md"
+                  ? "44px"
+                  : "32px"
+          }
           className="object-cover"
+          onError={() => setFailedSrc(src)}
         />
-      ) : seed.slice(0, 2).toUpperCase()}
+      ) : (
+        seed.slice(0, 2).toUpperCase()
+      )}
     </span>
   );
 }

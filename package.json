@@ -13,11 +13,8 @@
     "test:e2e": "playwright test",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:seed": "bun --conditions=react-server src/db/seed.ts",
     "db:studio": "drizzle-kit studio",
-    "demo:scrape": "bun scripts/scrape-oguser-demo.ts",
-    "demo:avatars": "bun --conditions=react-server scripts/import-demo-avatars.ts",
-    "demo:refresh": "bun --env-file=.env.local run demo:avatars && bun --env-file=.env.local run db:seed"
+    "db:bootstrap": "bun --conditions=react-server src/db/bootstrap.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1096.0",
@@ -49,6 +46,7 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.12.1",
+    "@electric-sql/pglite": "^0.5.8",
     "@playwright/test": "^1.62.0",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^7.0.0",

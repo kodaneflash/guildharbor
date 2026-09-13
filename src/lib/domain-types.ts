@@ -1,16 +1,6 @@
-export type ThreadType =
-  | "discussion"
-  | "selling"
-  | "buying"
-  | "service"
-  | "announcement";
+export type ThreadType = "discussion" | "announcement";
 
-export type ThreadBadge =
-  | "Trending"
-  | "Premium"
-  | "Top seller"
-  | "Mentor"
-  | "Locked";
+export type ThreadBadge = "Trending" | "Premium" | "Mentor" | "Locked";
 
 export type ThreadListItem = {
   id: number;
@@ -40,9 +30,6 @@ export type ForumSummary = {
   accent: string;
   threadCount: number;
   postCount: number;
-  latestThread: string;
-  latestPoster: string;
-  latestAt: string;
   subforums?: string[];
 };
 
@@ -73,10 +60,9 @@ export type ProfileSummary = {
   years: number;
   badges: Array<{ label: string; icon: string; tone: string }>;
   groups: Array<{ name: string; subtitle: string; tone: string }>;
-  listings: Array<{ title: string; category: string; status: string }>;
   activity: Array<{ title: string; detail: string; href: string }>;
   about: string;
-  signature: string;
+  signature: unknown;
 };
 
 export type CursorPage<T> = {

@@ -16,15 +16,18 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
+  ),
   title: {
-    default: "GuildHarbor — Community & Marketplace",
+    default: "GuildHarbor — Private Community",
     template: "%s · GuildHarbor",
   },
-  description:
-    "A focused community forum and curated marketplace for lawful digital goods and professional services.",
-  robots: { index: true, follow: true },
+  description: "A members-only community forum.",
+  robots: { index: false, follow: false },
 };
+
+export const dynamic = "force-dynamic";
 
 export default function RootLayout({
   children,
@@ -37,7 +40,10 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full">
-        <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:bg-text focus:px-4 focus:py-2 focus:text-page-deep">
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:bg-text focus:px-4 focus:py-2 focus:text-page-deep"
+        >
           Skip to content
         </a>
         <AppShell>{children}</AppShell>

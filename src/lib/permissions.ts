@@ -1,3 +1,4 @@
+import { isApprovedMember, type CommunityAccessMode } from "@/lib/membership";
 export type Permission =
   | "forum.read"
   | "thread.create"
@@ -13,18 +14,32 @@ export type Permission =
 
 export type Actor = {
   id: string;
-  status: "pending_email" | "pending_username" | "active" | "restricted" | "suspended" | "banned" | "deleted";
+  emailVerified: boolean;
+  username: string | null;
+  membershipStatus: "pending" | "approved" | "rejected";
+  status:
+    | "pending_email"
+    | "pending_username"
+    | "active"
+    | "restricted"
+    | "suspended"
+    | "banned"
+    | "deleted";
   permissions: ReadonlySet<Permission>;
 };
 
-const readOnlyStatuses = new Set<Actor["status"]>(["pending_email", "pending_username", "restricted"]);
-
-export function can(actor: Actor | null, permission: Permission) {
-  if (permission === "forum.read") return actor?.status !== "banned" && actor?.status !== "deleted";
-  if (!actor || actor.status !== "active" || readOnlyStatuses.has(actor.status)) return false;
-  return actor.permissions.has(permission) || actor.permissions.has("admin.manage");
+export function can(actor: Actor | null, permission: Permission, mode: CommunityAccessMode = "private") {
+  if (
+    !actor ||
+    !isApprovedMember({ ...actor, accountStatus: actor.status }, mode)
+  )
+    return false;
+  if (permission === "forum.read") return true;
+  return (
+    actor.permissions.has(permission) || actor.permissions.has("admin.manage")
+  );
 }
 
-export function assertCan(actor: Actor | null, permission: Permission) {
-  if (!can(actor, permission)) throw new Error("FORBIDDEN");
+export function assertCan(actor: Actor | null, permission: Permission, mode: CommunityAccessMode = "private") {
+  if (!can(actor, permission, mode)) throw new Error("FORBIDDEN");
 }

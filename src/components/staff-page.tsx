@@ -1,7 +1,71 @@
-import { BadgeCheck, Flag, FolderTree, Gauge, ShieldAlert, UsersRound } from "lucide-react";
-
-import { Breadcrumbs } from "@/components/breadcrumbs";
-
-const icons = { reports: Flag, forums: FolderTree, badges: BadgeCheck, groups: UsersRound, settings: Gauge, user: ShieldAlert };
-const content = { reports: ["Misleading listing details", "Harassment in a private message", "Possible duplicate marketplace feedback"], forums: ["Community", "Announcements", "General Discussion", "Lawful Marketplace", "Professional Services"], badges: ["Verified member", "Top seller", "Mentor", "Early member"], groups: ["Harbor Guild", "Verified", "Mentors", "Marketplace reviewers"], settings: ["Registration rate limit", "Search rate limit", "Marketplace review flag", "Attachments enabled"], user: ["Account status: Active", "Warnings: 0", "Restrictions: 0", "Recent moderation actions: None"] } as const;
-export function StaffPage({ kind, title, description }: { kind: keyof typeof content; title: string; description: string }) { const Icon = icons[kind]; return <div className="site-container space-y-6 py-8 sm:py-10"><Breadcrumbs items={[{ label: "GuildHarbor", href: "/" }, { label: kind === "reports" || kind === "user" ? "Moderation" : "Administration" }, { label: title }]} /><header className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between"><div><span className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[.12em] text-danger"><Icon className="size-4" /> Staff only</span><h1 className="mt-3 text-3xl font-black text-text">{title}</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-text-muted">{description}</p></div><button className="button-primary self-start">Create</button></header><section className="surface overflow-hidden"><div className="grid grid-cols-[minmax(0,1fr)_120px] border-b border-border bg-panel-raised px-5 py-3 text-[11px] font-black uppercase tracking-wider text-text-muted"><span>Item</span><span>Status</span></div>{content[kind].map((item, index) => <div key={item} className="grid min-h-16 grid-cols-[minmax(0,1fr)_120px] items-center border-b border-border px-5 last:border-0"><div><strong className="text-sm text-text-secondary">{item}</strong><p className="mt-1 text-xs text-text-muted">Updated {index + 1} hour{index ? "s" : ""} ago</p></div><button className="button-secondary min-h-9">Review</button></div>)}</section></div>; }
+import { desc } from "drizzle-orm";
+import { staffNotice } from "@/components/access-notice";
+import { requirePermission } from "@/lib/session";
+import { createReadDatabase } from "@/db/client";
+import {
+  forums,
+  groups,
+  badges,
+  siteSettings,
+  reports,
+  moderationActions,
+} from "@/db/schema";
+export async function StaffPage({
+  kind,
+  title,
+  description,
+}: {
+  kind: "reports" | "forums" | "badges" | "groups" | "settings" | "user";
+  title: string;
+  description: string;
+}) {
+  const notice = await staffNotice(
+    kind === "reports" || kind === "user"
+      ? "moderation.review"
+      : "admin.manage",
+  );
+  if (notice) return notice;
+  await requirePermission(
+    kind === "reports" || kind === "user"
+      ? "moderation.review"
+      : "admin.manage",
+  );
+  const db = createReadDatabase();
+  const rows =
+    kind === "forums"
+      ? await db.select({ text: forums.title }).from(forums).limit(100)
+      : kind === "groups"
+        ? await db.select({ text: groups.name }).from(groups).limit(100)
+        : kind === "badges"
+          ? await db.select({ text: badges.name }).from(badges).limit(100)
+          : kind === "settings"
+            ? await db
+                .select({ text: siteSettings.key })
+                .from(siteSettings)
+                .limit(100)
+            : kind === "reports"
+              ? await db
+                  .select({ text: reports.reason })
+                  .from(reports)
+                  .orderBy(desc(reports.id))
+                  .limit(100)
+              : await db
+                  .select({ text: moderationActions.action })
+                  .from(moderationActions)
+                  .orderBy(desc(moderationActions.id))
+                  .limit(100);
+  return (
+    <div className="site-container space-y-6 py-8">
+      <h1 className="text-3xl font-extrabold">{title}</h1>
+      <p className="text-text-muted">{description}</p>
+      <section className="surface divide-y divide-border">
+        {rows.map((row, index) => (
+          <p key={index} className="p-5">
+            {row.text}
+          </p>
+        ))}
+        {!rows.length && <p className="p-8 text-text-muted">No records.</p>}
+      </section>
+    </div>
+  );
+}

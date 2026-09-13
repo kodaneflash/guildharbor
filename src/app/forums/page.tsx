@@ -1,20 +1,19 @@
-import type { Metadata } from "next";
-
-import { Breadcrumbs } from "@/components/breadcrumbs";
 import { CategorySection } from "@/components/category-section";
-import { demoCategories } from "@/data/demo";
-
-export const metadata: Metadata = { title: "Forums" };
-
-export default function ForumsPage() {
+import { communityNotice } from "@/components/access-notice";
+import { forumCategories } from "@/db/queries/community";
+export default async function ForumsPage() {
+  const notice = await communityNotice();
+  if (notice) return notice;
+  const categories = await forumCategories();
   return (
-    <div className="site-container space-y-7 py-8 sm:py-10">
-      <Breadcrumbs items={[{ label: "GuildHarbor", href: "/" }, { label: "Forums" }]} />
-      <div>
-        <h1 className="text-2xl font-extrabold text-text sm:text-3xl">Browse forums</h1>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-text-muted">Find conversations, peer support, original digital work, domains, and professional services.</p>
-      </div>
-      {demoCategories.map((category) => <CategorySection key={category.slug} category={category} />)}
+    <div className="site-container space-y-7 py-8">
+      <h1 className="text-3xl font-extrabold">Browse forums</h1>
+      {categories.map((category) => (
+        <CategorySection key={category.slug} category={category} />
+      ))}
+      {!categories.length && (
+        <p className="surface p-8 text-text-muted">No forums available yet.</p>
+      )}
     </div>
   );
 }

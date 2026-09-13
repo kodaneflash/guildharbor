@@ -1,8 +1,46 @@
-import { AtSign, HeartHandshake, MessageCircle, ShieldCheck } from "lucide-react";
-import type { Metadata } from "next";
+import { desc, eq } from "drizzle-orm";
+import { communityNotice } from "@/components/access-notice";
+import { requireMember } from "@/lib/session";
+import { createReadDatabase } from "@/db/client";
+import { notifications } from "@/db/schema";
+import { findThread, findForum } from "@/db/queries/community";
 import Link from "next/link";
-
-import { Breadcrumbs } from "@/components/breadcrumbs";
-export const metadata: Metadata = { title: "Notifications", robots: { index: false, follow: false } };
-const notices = [{ icon: MessageCircle, title: "Moss replied to your thread", detail: "Weekly showcase: what are you building?", time: "2 minutes ago", href: "/threads/10463/weekly-showcase-what-are-you-building", unread: true }, { icon: HeartHandshake, title: "You received a positive vouch", detail: "Clear scope and an excellent delivery.", time: "1 hour ago", href: "/members/Aster/vouches", unread: true }, { icon: AtSign, title: "Juniper mentioned you", detail: "In Professional Services", time: "Yesterday", href: "/forums/services", unread: false }, { icon: ShieldCheck, title: "Your listing passed review", detail: "Design system audit for growing product teams", time: "Monday", href: "/marketplace", unread: false }];
-export default function NotificationsPage() { return <div className="site-container max-w-4xl space-y-6 py-8 sm:py-10"><Breadcrumbs items={[{ label: "GuildHarbor", href: "/" }, { label: "Notifications" }]} /><div className="flex items-end justify-between"><div><h1 className="text-3xl font-black text-text">Notifications</h1><p className="mt-2 text-sm text-text-muted">Replies, mentions, trust feedback, and marketplace updates.</p></div><button className="button-secondary">Mark all read</button></div><section className="surface overflow-hidden">{notices.map(({ icon: Icon, title, detail, time, href, unread }) => <Link key={title} href={href} className={`grid grid-cols-[40px_minmax(0,1fr)] gap-3 border-b border-border p-4 last:border-0 hover:bg-panel-raised sm:grid-cols-[40px_minmax(0,1fr)_auto] ${unread ? "bg-category/5" : ""}`}><span className="grid size-10 place-items-center rounded-full bg-panel-strong text-category"><Icon className="size-4" /></span><span className="min-w-0"><strong className="block text-sm text-text">{title}</strong><span className="mt-1 block truncate text-xs text-text-muted">{detail}</span></span><span className="col-start-2 text-xs text-text-muted sm:col-start-auto">{time}</span></Link>)}</section></div>; }
+export default async function NotificationsPage() {
+  const notice = await communityNotice();
+  if (notice) return notice;
+  const access = await requireMember();
+  const rows = await createReadDatabase()
+    .select()
+    .from(notifications)
+    .where(eq(notifications.userId, access.user.id))
+    .orderBy(desc(notifications.id))
+    .limit(50);
+  const visible = [];
+  for (const row of rows) {
+    const thread = /^\/threads\/(\d+)\//.exec(row.href);
+    const forum = /^\/forums\/([^/?#]+)$/.exec(row.href);
+    if (
+      (thread && (await findThread(Number(thread[1])))) ||
+      (forum && (await findForum(forum[1])))
+    )
+      visible.push(row);
+  }
+  return (
+    <div className="site-container max-w-4xl space-y-6 py-8">
+      <h1 className="text-3xl font-extrabold">Notifications</h1>
+      <section className="surface divide-y divide-border">
+        {visible.map((row) => (
+          <Link key={row.id} className="block p-5" href={row.href}>
+            <strong>{row.title}</strong>
+            <p className="mt-2 text-xs text-text-muted">
+              {row.createdAt.toISOString()}
+            </p>
+          </Link>
+        ))}
+        {!visible.length && (
+          <p className="p-8 text-text-muted">No notifications.</p>
+        )}
+      </section>
+    </div>
+  );
+}
