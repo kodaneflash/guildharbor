@@ -1,7 +1,7 @@
 "use client";
 
 import { LoaderCircle } from "lucide-react";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 
 import { UsernameField } from "@/components/username-field";
 
@@ -38,10 +38,13 @@ const copy: Record<
 export function AccountFlowForm({
   flow,
   isConfigured,
+  returnTo = "/",
 }: {
   flow: Flow;
+  returnTo?: string;
   isConfigured: boolean;
 }) {
+  const [useRecoveryCode, setUseRecoveryCode] = useState(false);
   async function submit(_: State, formData: FormData): Promise<State> {
     const email = String(formData.get("email") ?? "");
     const otp = String(formData.get("otp") ?? "");
@@ -64,7 +67,7 @@ export function AccountFlowForm({
                 body: { username, displayUsername: username, name: username },
               }
             : {
-                path: "/api/auth/two-factor/verify-totp",
+                path: useRecoveryCode ? "/api/auth/two-factor/verify-backup-code" : "/api/auth/two-factor/verify-totp",
                 body: { code: otp, trustDevice: false },
               };
     const response = await fetch(request.path, {
@@ -82,7 +85,7 @@ export function AccountFlowForm({
       window.location.assign(
         `/reset-password?email=${encodeURIComponent(email)}`,
       );
-    else window.location.assign("/");
+    else window.location.assign(returnTo);
     return { error: false, message: "Request completed." };
   }
   const [state, action, pending] = useActionState(submit, initialState);
@@ -90,8 +93,8 @@ export function AccountFlowForm({
   return (
     <div className="site-container grid min-h-[calc(100vh-170px)] place-items-center py-10">
       <section className="surface w-full max-w-md p-5 sm:p-7">
-        <h1 className="text-2xl font-extrabold text-text">{details.title}</h1>
-        <p className="mt-2 text-sm leading-6 text-text-muted">
+        <h1 className="text-heading-xl font-extrabold text-text">{details.title}</h1>
+        <p className="mt-2 text-body-sm leading-6 text-text-muted">
           {details.description}
         </p>
         <form action={action} className="mt-7 space-y-4">
@@ -108,11 +111,12 @@ export function AccountFlowForm({
               label="Verification code"
               name="otp"
               inputMode="numeric"
-              pattern="[0-9]{6}"
+              pattern={useRecoveryCode ? undefined : "[0-9]{6}"}
               minLength={6}
-              maxLength={6}
+              maxLength={useRecoveryCode ? 32 : 6}
             />
           )}
+          {flow === "two-factor" && <label className="flex gap-3 text-body-sm"><input type="checkbox" checked={useRecoveryCode} onChange={event => setUseRecoveryCode(event.target.checked)} />Use a recovery code</label>}
           {flow === "reset" && (
             <Field
               label="New password"
@@ -125,14 +129,15 @@ export function AccountFlowForm({
           )}
           {flow === "username" && <UsernameField />}
           {!isConfigured && (
-            <p className="rounded-md border border-yellow/30 bg-yellow/10 p-3 text-xs leading-5 text-yellow">
+            <p className="rounded-md border border-yellow/30 bg-yellow/10 p-3 text-body-xs leading-5 text-yellow">
               This account service is temporarily unavailable.
             </p>
           )}
           {state.message && (
             <p
+              role="status"
               className={
-                state.error ? "text-xs text-danger" : "text-xs text-trust"
+                state.error ? "text-body-xs text-danger" : "text-body-xs text-trust"
               }
             >
               {state.message}
@@ -160,7 +165,7 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-2 block text-xs font-bold text-text-secondary">
+      <span className="mb-2 block text-body-xs font-bold text-text-secondary">
         {label}
       </span>
       <input {...props} name={name} required className="field" />

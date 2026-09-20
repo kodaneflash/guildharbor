@@ -1,3 +1,4 @@
+import { authorizeFileResource } from "@/domains/delivery/file-service";
 import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -34,8 +35,14 @@ export async function GET(
       ),
     )
     .limit(1);
-  if (!attachment)
-    return new Response(null, { status: 404, headers: privateHeaders });
+  if (!attachment) {
+    const [file] = await createReadDatabase().select().from(attachments).where(and(eq(attachments.id, id.data), eq(attachments.state, "ready"), eq(attachments.scanStatus, "clean")));
+    if (!file?.resourceId || !(await authorizeFileResource(file.purpose, file.resourceId, false))) return new Response(null, { status: 404, headers: privateHeaders });
+    const object = await createObjectStorageClient().send(new GetObjectCommand({ Bucket: env.R2_BUCKET, Key: file.storageKey }));
+    if (!object.Body) return new Response(null, { status: 404, headers: privateHeaders });
+    const preview = new URL(request.url).searchParams.get("preview") === "1" && ["text/plain", "image/webp"].includes(file.mediaType);
+    return new Response(object.Body.transformToWebStream(), { headers: { ...privateHeaders, "Content-Type": file.mediaType, "X-Content-Type-Options": "nosniff", "Content-Security-Policy": "default-src 'none'; sandbox", "Content-Disposition": `${preview ? "inline" : "attachment"}; filename*=UTF-8''${encodeURIComponent(file.originalName ?? "download")}` } });
+  }
   const object = await createObjectStorageClient().send(
     new GetObjectCommand({ Bucket: env.R2_BUCKET, Key: attachment.storageKey }),
   );

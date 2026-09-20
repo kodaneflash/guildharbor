@@ -47,7 +47,7 @@ export function UsernameField() {
         : "Checking availability…";
   return (
     <label className="block">
-      <span className="mb-2 block text-xs font-bold text-text-secondary">
+      <span className="mb-2 block text-body-xs font-bold text-text-secondary">
         Username
       </span>
       <input
@@ -66,7 +66,7 @@ export function UsernameField() {
       <span
         id="username-availability"
         role="status"
-        className="mt-2 block text-xs text-text-muted"
+        className="mt-2 block text-body-xs text-text-muted"
       >
         {message}
       </span>

@@ -35,10 +35,10 @@ export function UserAvatar({
 }) {
   const [failedSrc, setFailedSrc] = useState<string>();
   const sizeClass = {
-    sm: "size-8 text-[10px]",
-    md: "size-11 text-xs",
-    lg: "size-16 text-base",
-    xl: "size-32 text-3xl sm:size-40",
+    sm: "size-8 text-label-sm",
+    md: "size-11 text-body-xs",
+    lg: "size-16 text-body-md",
+    xl: "size-32 text-display-sm sm:size-40",
   }[size];
 
   return (

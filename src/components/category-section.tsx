@@ -6,8 +6,8 @@ export function CategorySection({ category }: { category: ForumCategory }) {
     <section aria-labelledby={`category-${category.slug}`} className="space-y-2">
       <div className="section-heading">
         <div>
-          <h2 id={`category-${category.slug}`} className="text-sm font-extrabold uppercase tracking-[0.08em] text-text">{category.name}</h2>
-          <p className="mt-1 text-xs text-text-muted">{category.description}</p>
+          <h2 id={`category-${category.slug}`} className="text-body-sm font-extrabold uppercase tracking-[0.08em] text-text">{category.name}</h2>
+          <p className="mt-1 text-body-xs text-text-muted">{category.description}</p>
         </div>
       </div>
       <div className="space-y-2">

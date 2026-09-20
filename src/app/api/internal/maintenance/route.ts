@@ -1,3 +1,4 @@
+import { runMaintenance } from "@/domains/notifications/maintenance";
 import { timingSafeEqual } from "node:crypto";
 
 import { env } from "@/lib/env";
@@ -12,8 +13,6 @@ function validSecret(value: string | null) {
 export async function POST(request: Request) {
   if (!validSecret(request.headers.get("authorization")))
     return Response.json({ error: "Unauthorized" }, { status: 401 });
-  return Response.json(
-    { error: "No maintenance jobs are configured." },
-    { status: 501 },
-  );
+  const result = await runMaintenance();
+  return Response.json(result, { status: result.failed ? 503 : 200, headers: { "Cache-Control": "private, no-store" } });
 }

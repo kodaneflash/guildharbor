@@ -19,7 +19,7 @@ export function ThreadTypeBadge({ type }: { type: ThreadType }) {
   return (
     <span
       className={cn(
-        "inline-flex h-6 items-center rounded-[5px] border px-1.5 text-[11px] font-extrabold capitalize leading-none",
+        "inline-flex h-6 items-center rounded-[5px] border px-1.5 text-label-sm font-extrabold capitalize leading-none",
         typeStyles[type],
       )}
     >
@@ -32,7 +32,7 @@ export function ThreadFlagBadge({ badge }: { badge: ThreadBadge }) {
   return (
     <span
       className={cn(
-        "inline-flex h-6 items-center gap-1 rounded-[5px] border px-1.5 text-[11px] font-extrabold uppercase leading-none",
+        "inline-flex h-6 items-center gap-1 rounded-[5px] border px-1.5 text-label-sm font-extrabold uppercase leading-none",
         badgeStyles[badge],
       )}
     >

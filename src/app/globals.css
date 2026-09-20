@@ -39,8 +39,9 @@
   --color-destructive: var(--danger);
   --color-input: var(--border-strong);
   --color-ring: var(--focus);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-fk-grotesk);
+  --font-display: var(--font-fk-grotesk);
+  --font-mono: var(--font-fk-grotesk);
   --radius-sm: 4px;
   --radius-md: 6px;
   --radius-lg: 8px;
@@ -88,7 +89,135 @@ body {
   overflow-x: hidden;
   background: var(--page-deep);
   color: var(--text);
-  font-family: var(--font-geist-sans), Arial, sans-serif;
+  font-family: var(--font-fk-grotesk), Arial, sans-serif;
+  font-size: 1rem;
+  line-height: 1.65;
+  text-wrap: pretty;
+}
+
+@layer base {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    text-wrap: balance;
+  }
+
+  h1 {
+    @apply font-display text-display-xl;
+  }
+
+  h2 {
+    @apply font-display text-display-md;
+  }
+
+  h3 {
+    @apply text-heading-xl;
+  }
+
+  h4 {
+    @apply text-heading-lg;
+  }
+
+  h5 {
+    @apply text-heading-md;
+  }
+
+  h6 {
+    @apply text-heading-sm;
+  }
+
+  p {
+    @apply text-body-md text-pretty;
+  }
+}
+
+@utility font-display {
+  font-family: var(--font-display), var(--font-sans), sans-serif;
+}
+
+@utility text-display-xl {
+  font-size: 3.75rem;
+  line-height: 1.05;
+  letter-spacing: -0.035em;
+}
+
+@utility text-display-lg {
+  font-size: 3rem;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+
+@utility text-display-md {
+  font-size: 2.25rem;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+}
+
+@utility text-display-sm {
+  font-size: 1.875rem;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+@utility text-heading-xl {
+  font-size: 1.5rem;
+  line-height: 1.3;
+  font-weight: 600;
+}
+
+@utility text-heading-lg {
+  font-size: 1.25rem;
+  line-height: 1.35;
+  font-weight: 600;
+}
+
+@utility text-heading-md {
+  font-size: 1.125rem;
+  line-height: 1.4;
+  font-weight: 600;
+}
+
+@utility text-heading-sm {
+  font-size: 1rem;
+  line-height: 1.45;
+  font-weight: 600;
+}
+
+@utility text-body-xl {
+  font-size: 1.25rem;
+  line-height: 1.6;
+}
+
+@utility text-body-md {
+  font-size: 1rem;
+  line-height: 1.65;
+}
+
+@utility text-body-sm {
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+@utility text-body-xs {
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+@utility text-label-md {
+  font-size: 0.8125rem;
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+@utility text-label-sm {
+  font-size: 0.75rem;
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: 0.015em;
 }
 
 button,
@@ -114,6 +243,12 @@ select:focus-visible {
 
 .site-container {
   width: min(75%, var(--site-max-width));
+  margin-inline: auto;
+}
+
+.header-container,
+.discovery-container {
+  width: min(calc(100% - 32px), var(--site-max-width));
   margin-inline: auto;
 }
 
@@ -178,8 +313,10 @@ select:focus-visible {
   gap: 8px;
   border-radius: 20px;
   padding-inline: 14px;
-  font-size: 14px;
-  font-weight: 650;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
 }
 
 .icon-link {
@@ -214,7 +351,8 @@ select:focus-visible {
   background: var(--page);
   padding: 10px 12px;
   color: var(--text);
-  font-size: 14px;
+  font-size: 0.875rem;
+  line-height: 1.6;
 }
 
 .field::placeholder {
@@ -232,8 +370,10 @@ select:focus-visible {
   border: 1px solid transparent;
   border-radius: 6px;
   padding: 0 16px;
-  font-size: 13px;
-  font-weight: 800;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
   transition: filter 150ms ease, background 150ms ease, border-color 150ms ease;
 }
 

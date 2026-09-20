@@ -1,3 +1,6 @@
+import { getSessionCookie } from "better-auth/cookies";
+import { authenticationPaths, safeReturnPath } from "@/lib/return-path";
+
 import { randomBytes } from "node:crypto";
 
 import type { NextRequest } from "next/server";
@@ -22,8 +25,13 @@ export async function proxy(request: NextRequest) {
   ].join("; ");
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set("x-product-path", safeReturnPath(request.nextUrl.pathname + request.nextUrl.search));
   requestHeaders.set("Content-Security-Policy", contentSecurityPolicy);
-  const response = NextResponse.next({ request: { headers: requestHeaders } });
+  const isDocument = !request.nextUrl.pathname.startsWith("/api/") && !request.nextUrl.pathname.startsWith("/feeds/");
+  const needsSignIn = isDocument && !authenticationPaths.has(request.nextUrl.pathname) && !getSessionCookie(request, { cookiePrefix: "guildharbor" });
+  const destination = new URL("/sign-in", request.url);
+  destination.searchParams.set("returnTo", safeReturnPath(request.nextUrl.pathname + request.nextUrl.search));
+  const response = needsSignIn ? NextResponse.redirect(destination) : NextResponse.next({ request: { headers: requestHeaders } });
   response.headers.set("Content-Security-Policy", contentSecurityPolicy);
   response.headers.set("Cache-Control", "private, no-store, max-age=0");
   if (isProduction)

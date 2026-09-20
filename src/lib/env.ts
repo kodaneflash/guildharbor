@@ -8,7 +8,7 @@ const environmentSchema = z.object({
   NODE_ENV: z
     .enum(["development", "test", "production"])
     .default("development"),
-  COMMUNITY_ACCESS_MODE: z.enum(["public", "private"]).default("private"),
+  COMMUNITY_ACCESS_MODE: z.enum(["public", "private"]).default("public"),
   DATABASE_URL: optionalUrl,
   DATABASE_URL_UNPOOLED: optionalUrl,
   BETTER_AUTH_SECRET: z.string().min(32).optional(),

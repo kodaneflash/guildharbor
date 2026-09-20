@@ -1,3 +1,6 @@
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { safeReturnPath } from "@/lib/return-path";
 import { communityAccessMode } from "@/lib/community-access";
 import Link from "next/link";
 import { getAccess } from "@/lib/session";
@@ -8,41 +11,26 @@ export async function communityNotice() {
   const access = await getAccess();
   if (access.allowed) return null;
   const user = access.user;
+  if (!user) redirect(`/sign-in?returnTo=${encodeURIComponent(safeReturnPath((await headers()).get("x-product-path")))}`);
   const requiresApproval = communityAccessMode() === "private";
   return (
     <div className="site-container py-12">
-      {!user ? (
-        <section className="surface mx-auto max-w-xl space-y-5 p-7">
-          <h1 className="text-2xl font-extrabold">Members-only community</h1>
-          <p className="text-sm leading-7 text-text-muted">
-            Sign in to view community content, or create an account.
-            {requiresApproval ? " Registration requires administrator approval." : " Verify your email and choose a unique username to join."}
-          </p>
-          <div className="flex flex-wrap gap-3">
-            <Link href="/sign-up" className="button-primary">
-              Create an account
-            </Link>
-            <Link href="/sign-in" className="button-secondary">
-              Log in
-            </Link>
-          </div>
-        </section>
-      ) : user.membershipStatus === "rejected" ? (
+      {user.membershipStatus === "rejected" ? (
         <section className="surface mx-auto max-w-xl p-7">
-          <h1 className="text-2xl font-extrabold">Registration not approved</h1>
+          <h1 className="text-heading-xl font-extrabold">Registration not approved</h1>
           <p className="mt-3 text-text-muted">
             Your registration request was declined.
-          </p>
+          </p><Link href="/support" className="button-secondary mt-4">Request account support</Link>
         </section>
       ) : user.accountStatus !== "active" &&
         !["pending_email", "pending_username"].includes(user.accountStatus) ? (
         <section className="surface mx-auto max-w-xl p-7">
           <h1>Community access unavailable</h1>
-          <p>Your account does not currently have access.</p>
+          <p>Your account does not currently have access.</p><Link href="/support" className="button-secondary mt-4">Request account support</Link>
         </section>
       ) : (
         <div className="space-y-4">
-          {requiresApproval && user.emailVerified && user.username ? <PendingReview /> : <section className="surface mx-auto max-w-xl p-7"><h1 className="text-2xl font-extrabold">Complete your registration</h1><p>Verify your email and choose a unique username to continue.</p></section>}
+          {requiresApproval && user.emailVerified && user.username ? <PendingReview /> : <section className="surface mx-auto max-w-xl p-7"><h1 className="text-heading-xl font-extrabold">Complete your registration</h1><p>Verify your email and choose a unique username to continue.</p></section>}
           {!user.emailVerified && (
             <p className="text-center">
               <Link
@@ -78,7 +66,7 @@ export async function staffNotice(permission: string) {
   return (
     <div className="site-container py-12">
       <section className="surface p-7">
-        <h1 className="text-2xl font-bold">Staff access required</h1>
+        <h1 className="text-heading-xl font-bold">Staff access required</h1>
         <p className="mt-3 text-text-muted">
           You do not have permission to view this page.
         </p>

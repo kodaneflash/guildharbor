@@ -1,6 +1,6 @@
 "use client";
 import { useActionState } from "react";
-import { replyAction } from "@/app/threads/reply-actions";
+import { replyAction } from "@/app/(product)/threads/reply-actions";
 export function ReplyForm({ threadId }: { threadId: number }) {
   const [state, action, pending] = useActionState(
     replyAction.bind(null, threadId),

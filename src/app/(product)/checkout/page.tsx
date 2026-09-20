@@ -1,0 +1,4 @@
+import { notFound } from "next/navigation";
+import { z } from "zod";
+import { CheckoutSummary } from "@/components/checkout-summary";
+export default async function CheckoutPage({ searchParams }: { searchParams: Promise<{ listing?: string; item?: string | string[]; fromCart?: string }> }) { const { listing, item, fromCart } = await searchParams; const selectedCartIds = fromCart === "1" ? typeof item === "string" ? [item] : item ?? [] : undefined; if (selectedCartIds && !z.array(z.uuid()).max(100).safeParse(selectedCartIds).success) notFound(); if (listing && !z.uuid().safeParse(listing).success) notFound(); return <div className="site-container max-w-4xl space-y-5 py-8"><h1 className="text-display-sm font-bold">Review purchase</h1><p>Review only — payments are not available.</p><CheckoutSummary listingId={listing} selectedCartIds={selectedCartIds} /></div>; }

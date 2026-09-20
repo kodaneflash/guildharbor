@@ -51,12 +51,11 @@ export type ProfileSummary = {
   lastSeen: string;
   uid: string;
   telegram?: string;
+  discord?: string;
   reputation: number;
   vouches: { positive: number; neutral: number; negative: number };
   threads: number;
   posts: number;
-  likes: number;
-  credits: number;
   years: number;
   badges: Array<{ label: string; icon: string; tone: string }>;
   groups: Array<{ name: string; subtitle: string; tone: string }>;

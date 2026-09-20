@@ -2,7 +2,7 @@
 import { readFile } from "node:fs/promises";
 import sharp from "sharp";
 import { renderToStaticMarkup } from "react-dom/server";
-import MembersPage from "@/app/members/page";
+import MembersPage from "@/app/(product)/members/page";
 import { createHash, createHmac } from "node:crypto";
 import { PGlite } from "@electric-sql/pglite";
 import { citext } from "@electric-sql/pglite/contrib/citext";
@@ -103,7 +103,7 @@ vi.mock("@/lib/rate-limit", () => ({ enforceRateLimit: vi.fn() }));
 
 import { auth } from "@/lib/auth";
 import { isApprovedMember } from "@/lib/membership";
-import { createThreadAction } from "@/app/threads/new/actions";
+import { createThreadAction } from "@/app/(product)/threads/new/actions";
 import {
   getAccess,
   requireMember,
@@ -116,7 +116,7 @@ import {
   threadPosts,
 } from "@/db/queries/community";
 import { createThread, replyToThread } from "@/domains/thread/thread-service";
-import { reviewRegistration } from "@/app/admin/registrations/actions";
+import { reviewRegistration } from "@/app/(product)/admin/registrations/actions";
 import { GET as feed } from "@/app/feeds/forums/[feed]/route";
 import { GET as file } from "@/app/api/files/[id]/route";
 import { POST as signUpload } from "@/app/api/uploads/sign/route";
@@ -199,6 +199,7 @@ beforeAll(async () => {
   await pg.exec(
     `BEGIN; ${await readFile("drizzle/0002_private_forum.sql", "utf8")} COMMIT;`,
   );
+  for (const migration of ["0003_profile_preferences", "0004_commerce_foundation", "0005_notification_delivery", "0006_unfunded_deals_support", "0007_resource_file_scanning", "0008_deal_request_version"]) await pg.exec(await readFile(`drizzle/${migration}.sql`, "utf8"));
   // auth is initialized at import; its mocked adapter accesses this database lazily.
   admin = await register("operator");
   member = await register("applicant");

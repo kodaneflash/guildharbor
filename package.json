@@ -12,9 +12,14 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
+    "db:migrate": "bun scripts/database.ts migrate",
     "db:studio": "drizzle-kit studio",
-    "db:bootstrap": "bun --conditions=react-server src/db/bootstrap.ts"
+    "db:bootstrap": "bun --conditions=react-server src/db/bootstrap.ts",
+    "db:inspect": "bun scripts/database.ts inspect",
+    "db:preserve": "bun scripts/database.ts preserve",
+    "db:verify-restore": "bun scripts/database.ts verify-restore",
+    "test:production": "node scripts/production-https.mjs",
+    "db:import-legacy": "bun scripts/import-legacy.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1096.0",

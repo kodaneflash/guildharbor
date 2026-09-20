@@ -72,9 +72,9 @@ export function AvatarUpload({
   }
   return (
     <section className="surface space-y-4 p-6">
-      <h2 className="text-xl font-bold">Avatar</h2>
+      <h2 className="text-heading-lg font-bold">Avatar</h2>
       <UserAvatar seed={username} src={avatarUrl} size="lg" />
-      <label className="block text-sm">
+      <label className="block text-body-sm">
         Choose an image
         <input
           className="field mt-2"
@@ -88,10 +88,10 @@ export function AvatarUpload({
           }}
         />
       </label>
-      <p className="text-xs text-text-muted">
+      <p className="text-body-xs text-text-muted">
         JPEG, PNG or WebP · up to 10 MB · visible to community members only
       </p>
-      <p role="status" className="text-sm">
+      <p role="status" className="text-body-sm">
         {pending ? "Uploading…" : message}
       </p>
     </section>

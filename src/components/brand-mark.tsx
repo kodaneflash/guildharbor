@@ -12,7 +12,7 @@ export function BrandMark({ compact = false, className }: { compact?: boolean; c
     >
       <Image src="/guildharbor-mark.svg" alt="" width={76} height={46} priority />
       {!compact && (
-        <span className="hidden text-sm font-bold tracking-[0.16em] text-text-secondary xl:block">
+        <span className="hidden text-body-sm font-bold tracking-[0.16em] text-text-secondary xl:block">
           GUILDHARBOR
         </span>
       )}

@@ -1,0 +1,4 @@
+import Link from "next/link";
+import { requirePermission } from "@/lib/session";
+import { communityAccessMode } from "@/lib/community-access";
+export default async function SettingsPage() { await requirePermission("admin.manage"); return <div className="site-container max-w-3xl space-y-5 py-8"><h1 className="text-display-sm font-bold">Release settings</h1><p>Registration mode: {communityAccessMode()}. Product content remains authentication-gated in either mode.</p><p>Registration mode and external-service secrets are deployment configuration. Changes require an operator deployment; the application does not expose secrets or offer financial activation switches.</p><p>Payments, wallet operations, paid reviews, advertising, promotions and monetary affiliate awards are disabled.</p><Link className="button-secondary" href="/admin/operations">Operational configuration status</Link></div>; }

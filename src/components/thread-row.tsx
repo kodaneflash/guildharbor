@@ -20,14 +20,14 @@ export function ThreadRow({ thread }: { thread: ThreadListItem }) {
           <Link
             href={`/threads/${thread.id}/${thread.slug}`}
             className={cn(
-              "min-w-0 text-[15px] font-bold leading-5 text-text decoration-category/60 underline-offset-4 group-hover:text-category group-hover:underline sm:text-base",
+              "min-w-0 text-body-md font-bold leading-5 text-text decoration-category/60 underline-offset-4 group-hover:text-category group-hover:underline sm:text-body-md",
               thread.isUnread && "text-white",
             )}
           >
             {thread.title}
           </Link>
         </div>
-        <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-text-muted">
+        <p className="mt-1 flex flex-wrap items-center gap-1.5 text-body-xs text-text-muted">
           by <Link href={`/members/${thread.creator}`} className="font-semibold hover:text-text" style={{ color: thread.creatorAccent }}>{thread.creator}</Link>
           <span aria-hidden="true">·</span>
           <span className="md:hidden">{numberFormatter.format(thread.replies)} replies</span>
@@ -38,11 +38,11 @@ export function ThreadRow({ thread }: { thread: ThreadListItem }) {
       <div className="hidden h-full items-center justify-center border-l border-border/60 text-center md:flex">
         <div>
           <MessageCircle className="mx-auto mb-1 size-3.5 text-text-muted" />
-          <strong className="text-sm text-text-secondary">{numberFormatter.format(thread.replies)}</strong>
+          <strong className="text-body-sm text-text-secondary">{numberFormatter.format(thread.replies)}</strong>
           <span className="sr-only"> replies</span>
         </div>
       </div>
-      <div className="col-span-2 flex items-center justify-between gap-3 border-t border-border/60 pt-2 text-xs md:col-span-1 md:block md:h-full md:border-l md:border-t-0 md:px-4 md:pt-4 md:text-center">
+      <div className="col-span-2 flex items-center justify-between gap-3 border-t border-border/60 pt-2 text-body-xs md:col-span-1 md:block md:h-full md:border-l md:border-t-0 md:px-4 md:pt-4 md:text-center">
         <span className="font-semibold text-text-secondary">{thread.latestReplyAt}</span>
         <span className="block truncate text-text-muted md:mt-1">by {thread.latestReplier}</span>
       </div>

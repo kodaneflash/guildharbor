@@ -1,0 +1,1 @@
+ALTER TABLE "deal_events" ADD COLUMN "request_version" integer;

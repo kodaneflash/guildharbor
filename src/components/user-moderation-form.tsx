@@ -1,0 +1,4 @@
+"use client";
+import { useActionState } from "react";
+import { userModerationAction } from "@/app/(product)/admin/users/actions";
+export function UserModerationForm({ userId, status }: { userId: string; status: string }) { const [state, action, pending] = useActionState(userModerationAction, { message: "" }); return <form action={action} className="space-y-3"><input type="hidden" name="userId" value={userId} /><label className="block">Account status<select className="field mt-2" name="status" defaultValue={status}><option value="active">Active</option><option value="restricted">Restricted</option><option value="suspended">Suspended</option><option value="banned">Banned</option></select></label><label className="block">Reason<textarea className="field mt-2" name="reason" minLength={5} maxLength={2000} required /></label><button className="button-secondary" disabled={pending}>Save moderation decision</button><p role="status">{state.message}</p></form>; }

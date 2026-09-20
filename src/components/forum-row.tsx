@@ -33,15 +33,15 @@ export function ForumRow({ forum }: { forum: ForumSummary }) {
       <div className="min-w-0">
         <Link
           href={`/forums/${forum.slug}`}
-          className="text-base font-bold text-text hover:text-category hover:underline hover:underline-offset-4"
+          className="text-body-md font-bold text-text hover:text-category hover:underline hover:underline-offset-4"
         >
           {forum.name}
         </Link>
-        <p className="mt-1 text-xs leading-5 text-text-muted sm:text-[13px]">
+        <p className="mt-1 text-body-xs leading-5 text-text-muted sm:text-label-md">
           {forum.description}
         </p>
         {forum.subforums && (
-          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-semibold text-text-secondary">
+          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-label-sm font-semibold text-text-secondary">
             {forum.subforums.map((subforum) => (
               <span key={subforum}>› {subforum}</span>
             ))}
@@ -49,16 +49,16 @@ export function ForumRow({ forum }: { forum: ForumSummary }) {
         )}
       </div>
       <div className="hidden text-center lg:block">
-        <strong className="block text-sm text-text-secondary">
+        <strong className="block text-body-sm text-text-secondary">
           {forum.threadCount.toLocaleString()}
         </strong>
-        <span className="text-[11px] text-text-muted">Threads</span>
+        <span className="text-label-sm text-text-muted">Threads</span>
       </div>
       <div className="hidden text-center lg:block">
-        <strong className="block text-sm text-text-secondary">
+        <strong className="block text-body-sm text-text-secondary">
           {forum.postCount.toLocaleString()}
         </strong>
-        <span className="text-[11px] text-text-muted">Posts</span>
+        <span className="text-label-sm text-text-muted">Posts</span>
       </div>
     </article>
   );

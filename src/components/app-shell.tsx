@@ -14,17 +14,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {children}
       </main>
       <footer className="border-t border-border bg-page-deep">
-        <div className="site-container flex flex-col gap-3 py-8 text-xs text-text-muted sm:flex-row sm:items-center sm:justify-between">
+        <div className="site-container flex flex-col gap-3 py-8 text-body-xs text-text-muted sm:flex-row sm:items-center sm:justify-between">
           <p>
             © 2026 GuildHarbor. Community feedback is not a guarantee of safety.
           </p>
           <nav className="flex flex-wrap gap-4" aria-label="Footer">
-            <a href="#" className="hover:text-text">
+            <a href="/rules" className="hover:text-text">
               Rules
             </a>
-            <a href="#" className="hover:text-text">
+            <a href="/privacy" className="hover:text-text">
               Privacy
             </a>
+            <a href="/terms" className="hover:text-text">Terms</a>
+            <a href="/help" className="hover:text-text">Help</a>
+            <a href="/support" className="hover:text-text">Support</a>
           </nav>
         </div>
       </footer>

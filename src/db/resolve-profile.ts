@@ -1,3 +1,4 @@
+import { viewerTimezone } from "@/lib/viewer-timezone";
 import { communityMemberFilter } from "@/lib/community-access";
 import "server-only";
 import { and, desc, eq, inArray, isNull } from "drizzle-orm";
@@ -43,7 +44,7 @@ export async function resolvePublicProfile(
       .select({ name: badges.name })
       .from(userBadges)
       .innerJoin(badges, eq(badges.id, userBadges.badgeId))
-      .where(eq(userBadges.userId, profile.userId)),
+      .where(and(eq(userBadges.userId, profile.userId), isNull(userBadges.revokedAt))),
     forumIds.length
       ? database
           .select({
@@ -64,7 +65,9 @@ export async function resolvePublicProfile(
           .limit(5)
       : [],
   ]);
-  const handle = profile.username!;
+  const handle = profile.username;
+  if (!handle) return null;
+  const timeZone = await viewerTimezone();
   return {
     username: handle,
     displayName: profile.displayName || handle,
@@ -72,12 +75,12 @@ export async function resolvePublicProfile(
     avatarSeed: handle,
     avatarUrl: profile.avatarUrl ?? undefined,
     initials: handle.slice(0, 2).toUpperCase(),
-    joined: profile.joinedAt.toLocaleDateString("en-US", { timeZone: "UTC" }),
+    joined: profile.joinedAt.toLocaleDateString("en-US", { timeZone }),
     lastSeen:
-      profile.lastSeenAt?.toLocaleString("en-US", { timeZone: "UTC" }) ??
-      "Not shared",
+      profile.lastSeenAt ? new Date(profile.lastSeenAt).toLocaleString("en-US", { timeZone }) : "Not shared",
     uid: profile.userId,
     telegram: profile.telegramHandle ?? undefined,
+    discord: profile.discordHandle ?? undefined,
     reputation: profile.reputation,
     vouches: {
       positive: profile.vouchPositive,
@@ -86,8 +89,6 @@ export async function resolvePublicProfile(
     },
     threads: profile.threadCount,
     posts: profile.postCount,
-    likes: profile.likeCount,
-    credits: profile.creditBalance,
     years: Math.floor((Date.now() - profile.joinedAt.getTime()) / 31557600000),
     badges: badgeRows.map((badge) => ({
       label: badge.name,
@@ -101,7 +102,7 @@ export async function resolvePublicProfile(
     })),
     activity: activity.map((thread) => ({
       title: thread.title,
-      detail: thread.createdAt.toLocaleDateString("en-US", { timeZone: "UTC" }),
+      detail: thread.createdAt.toLocaleDateString("en-US", { timeZone }),
       href: `/threads/${thread.id}/${thread.slug}`,
     })),
     about: profile.bio,

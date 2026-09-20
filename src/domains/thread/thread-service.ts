@@ -1,9 +1,11 @@
+import { notifyMember } from "@/domains/notifications/events";
+import { transactionForum } from "@/domains/authorization";
 import { hasCommunityAccess } from "@/lib/community-access";
 import "server-only";
 
 import { and, eq, isNull, sql } from "drizzle-orm";
 
-import { forums, posts, profiles, threads, users } from "@/db/schema";
+import { forums, posts, profiles, threads, users, threadSubscriptions } from "@/db/schema";
 import { withTransaction } from "@/db/transaction";
 import { findThread } from "@/db/queries/community";
 import { requireMember, requireForum } from "@/lib/session";
@@ -60,6 +62,7 @@ export async function createThread(input: CreateThreadInput) {
       !hasCommunityAccess(actor ?? null)
     )
       throw new Error("FORBIDDEN");
+    await transactionForum(database, input.actorId, input.forumId, "create");
     const [thread] = await database
       .insert(threads)
       .values({
@@ -133,6 +136,7 @@ export async function replyToThread(threadId: number, text: string) {
       !hasCommunityAccess(actor ?? null)
     )
       throw new Error("FORBIDDEN");
+    await transactionForum(database, access.user.id, thread.forumId, "reply");
     const [post] = await database
       .insert(posts)
       .values({
@@ -171,6 +175,9 @@ export async function replyToThread(threadId: number, text: string) {
       .update(profiles)
       .set({ postCount: sql`${profiles.postCount} + 1` })
       .where(eq(profiles.userId, access.user.id));
+    const subscribers = await database.select({ userId: threadSubscriptions.userId }).from(threadSubscriptions).where(eq(threadSubscriptions.threadId, threadId));
+    const recipients = subscribers.filter(subscriber => subscriber.userId !== access.user.id);
+    for (const subscriber of recipients) await notifyMember(database, { userId: subscriber.userId, actorId: access.user.id, type: "thread.reply", resourceType: "thread", resourceId: String(threadId), eventKey: `reply:${post.id}:${subscriber.userId}`, title: "New reply to a subscribed thread", href: `/threads/${threadId}/${thread.slug}?page=${Math.floor((thread.replyCount + 1) / 30) + 1}#post-${post.id}` });
     return {
       id: post.id,
       slug: thread.slug,

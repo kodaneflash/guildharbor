@@ -1,0 +1,2 @@
+import { requireMember } from "@/lib/session";
+export default async function WalletPage() { await requireMember(); return <div className="site-container max-w-3xl space-y-5 py-8"><h1 className="text-display-sm font-bold">Wallet</h1><p className="surface p-6">Wallet not available yet. The required production cryptocurrency wallet remains a future milestone. Deposits, balances, withdrawals and payment execution are not enabled.</p></div>; }

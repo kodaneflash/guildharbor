@@ -16,7 +16,7 @@ export function RichTextEditor({ name = "content" }: { name?: string }) {
     onUpdate({ editor: currentEditor }) {
       setSerializedContent(JSON.stringify(currentEditor.getJSON()));
     },
-    editorProps: { attributes: { class: "min-h-56 px-4 py-4 text-sm leading-7 text-text-secondary outline-none" } },
+    editorProps: { attributes: { class: "min-h-56 px-4 py-4 text-body-sm leading-7 text-text-secondary outline-none" } },
   });
 
   if (!editor) return <div className="h-64 animate-pulse rounded-md bg-panel" />;

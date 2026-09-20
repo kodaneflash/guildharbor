@@ -56,7 +56,7 @@ export async function StaffPage({
                   .limit(100);
   return (
     <div className="site-container space-y-6 py-8">
-      <h1 className="text-3xl font-extrabold">{title}</h1>
+      <h1 className="text-display-sm font-extrabold">{title}</h1>
       <p className="text-text-muted">{description}</p>
       <section className="surface divide-y divide-border">
         {rows.map((row, index) => (

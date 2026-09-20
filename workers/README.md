@@ -1,0 +1,7 @@
+# Private file scanner
+
+Run `file-scanner.py` in an isolated container with Python 3 and a separately updated ClamAV daemon. Set FILE_SCANNER_TOKEN (32+ random characters), CLAMAV_HOST, optional CLAMAV_PORT (3310), and PORT (8080). Place HTTPS ingress in front of the worker and restrict ingress to the application network. Configure FILE_SCANNER_URL and the same token in the application. The worker has no database or storage credentials. Keep ClamAV signatures current and monitor scan timeouts/failures. Apply container memory/CPU limits and a non-root user; do not mount application secrets or storage.
+
+The worker accepts up to 10 MiB, validates supported signatures/UTF-8, checks ZIP entry count, 50 MiB expansion, nesting depth, links, traversal and encryption, and sends all bytes to ClamAV INSTREAM. Non-ZIP nested archives are rejected. Images are additionally decoded and re-encoded by Sharp in the application. Scanner outages never produce a clean result. PDF files are download-only. This repository contains the worker implementation; deployment and live scanner/storage verification remain required before release.
+
+Invoke POST /api/internal/maintenance using the server-only MAINTENANCE_SECRET bearer credential from your scheduler. Run at least once per minute for notification delivery and orphan cleanup. Non-2xx responses require operator attention. Review /admin/operations for failed/pending jobs. Never put scheduler or scanner tokens in public variables or browser requests.

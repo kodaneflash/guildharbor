@@ -158,6 +158,7 @@ function createAuth() {
       }),
       emailOTP({
         sendVerificationOTP: sendOtpEmail,
+        changeEmail: { enabled: true, verifyCurrentEmail: true },
         otpLength: 6,
         expiresIn: 300,
         allowedAttempts: 3,

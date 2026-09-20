@@ -1,5 +1,6 @@
 "use client";
 import { useActionState, useState } from "react";
+import { RecoveryCodes } from "@/components/account-security-controls";
 import { authClient } from "@/lib/auth-client";
 type State = { message: string; error: boolean };
 export function SecurityForm({
@@ -51,6 +52,12 @@ export function SecurityForm({
         "Add the setup key to your authenticator, then enter its six-digit code to finish.",
     };
   }
+  const [disableState, disableAction, disablePending] = useActionState(async (_: State, form: FormData): Promise<State> => {
+    const result = await authClient.twoFactor.disable({ password: String(form.get("password")) });
+    if (result.error) return { error: true, message: result.error.message ?? "Unable to disable the authenticator." };
+    setEnabled(false);
+    return { error: false, message: "Two-factor authentication disabled. Existing recovery codes no longer work." };
+  }, { message: "", error: false });
   const [passwordState, passwordAction, passwordPending] = useActionState(
     changePassword,
     { message: "", error: false },
@@ -74,8 +81,8 @@ export function SecurityForm({
   return (
     <div className="space-y-5">
       <form action={passwordAction} className="surface space-y-4 p-6">
-        <h2 className="text-xl font-bold">Change password</h2>
-        <label className="block text-sm">
+        <h2 className="text-heading-lg font-bold">Change password</h2>
+        <label className="block text-body-sm">
           Current password
           <input
             className="field mt-2"
@@ -85,7 +92,7 @@ export function SecurityForm({
             required
           />
         </label>
-        <label className="block text-sm">
+        <label className="block text-body-sm">
           New password
           <input
             className="field mt-2"
@@ -108,21 +115,21 @@ export function SecurityForm({
         </button>
       </form>
       <section className="surface space-y-4 p-6">
-        <h2 className="text-xl font-bold">Two-factor authentication</h2>
+        <h2 className="text-heading-lg font-bold">Two-factor authentication</h2>
         {isEnabled ? (
-          <p className="text-trust">An authenticator is enrolled.</p>
+          <form action={disableAction} className="space-y-4"><p className="text-trust">An authenticator is enrolled.</p><p>Disabling removes the additional sign-in check and invalidates its recovery codes.</p><label className="block">Confirm password<input className="field mt-2" name="password" type="password" autoComplete="current-password" required /></label><button className="button-secondary" disabled={disablePending}>Disable authenticator</button></form>
         ) : (
           <form action={totpAction} className="space-y-4">
             {uri ? (
               <>
-                <p className="text-sm text-text-muted">
+                <p className="text-body-sm text-text-muted">
                   In your authenticator, add a time-based account named
                   GuildHarbor using this setup key. Keep it private.
                 </p>
                 <code className="block break-all rounded border border-border p-3">
                   {new URL(uri).searchParams.get("secret")}
                 </code>
-                <label className="block text-sm">
+                <label className="block text-body-sm">
                   Authenticator code
                   <input
                     className="field mt-2"
@@ -136,7 +143,7 @@ export function SecurityForm({
                 </label>
               </>
             ) : (
-              <label className="block text-sm">
+              <label className="block text-body-sm">
                 Confirm password
                 <input
                   className="field mt-2"
@@ -159,6 +166,8 @@ export function SecurityForm({
           {totpState.message}
         </p>
       </section>
+      <p role="status" className={disableState.error ? "text-danger" : "text-trust"}>{disableState.message}</p>
+      <RecoveryCodes enabled={isEnabled} />
     </div>
   );
 }

@@ -1,0 +1,7 @@
+import Link from "next/link";
+import { listDeals } from "@/domains/deals/deal-service";
+import { formatUsd } from "@/domains/commerce/validation";
+export async function DealList({ archive = false, page = 1 }: { archive?: boolean; page?: number }) {
+  const rows = await listDeals(archive, page);
+  return <div className="site-container max-w-4xl space-y-5 py-8"><h1 className="text-display-sm font-bold">{archive ? "Archived agreements" : "Your agreements"}</h1><nav className="flex flex-wrap gap-3" aria-label="Agreements"><Link className="button-primary" href="/deals/new">Create agreement</Link><Link className="button-secondary" href={archive ? "/deals" : "/deals/archive"}>{archive ? "Active agreements" : "Archive"}</Link><Link className="button-secondary" href="/deals/how-it-works">How it works</Link></nav><p>Optional escrow agreements are pre-funding only. Accepted agreements remain active until cancelled; no automatic funding expiry applies.</p>{!rows.length && <p className="surface p-6">No agreements in this view.</p>}{rows.map(deal => <Link className="surface block space-y-2 p-5" key={deal.id} href={`/deals/${deal.id}`}><h2 className="text-heading-lg font-bold">{deal.name}</h2><p>{deal.state} · {formatUsd(deal.amountCents)}</p></Link>)}<nav aria-label="Agreement pagination" className="flex gap-4">{page > 1 && <Link href={`?page=${page - 1}`}>Previous</Link>}{rows.length === 30 && <Link href={`?page=${page + 1}`}>Next</Link>}</nav></div>;
+}

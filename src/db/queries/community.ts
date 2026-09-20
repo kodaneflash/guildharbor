@@ -1,4 +1,5 @@
 import "server-only";
+import { viewerTimezone } from "@/lib/viewer-timezone";
 import {
   and,
   asc,
@@ -121,6 +122,7 @@ export async function communityThreads(
     )
     .limit(30)
     .offset(((options.page ?? 1) - 1) * 30);
+  const timeZone = await viewerTimezone();
   return rows.map(
     ({ thread, forumSlug, username, avatarUrl, latestUsername }) => ({
       id: thread.id,
@@ -134,7 +136,7 @@ export async function communityThreads(
       replies: thread.replyCount,
       views: thread.viewCount,
       latestReplyAt: thread.latestPostAt.toLocaleString("en-US", {
-        timeZone: "UTC",
+        timeZone,
       }),
       latestReplier: latestUsername ?? "deleted",
       isPinned: thread.isPinned,
@@ -165,12 +167,14 @@ export async function threadPosts(threadId: number, page = 1) {
     .select({
       id: posts.id,
       content: posts.content,
+      plainText: posts.plainText,
+      authorId: posts.authorId,
+      threadId: posts.threadId,
+      updatedAt: posts.updatedAt,
       createdAt: posts.createdAt,
       editedAt: posts.editedAt,
       username: users.username,
       avatarUrl: profiles.avatarUrl,
-      postCount: profiles.postCount,
-      threadCount: profiles.threadCount,
       joinedAt: users.createdAt,
     })
     .from(posts)
@@ -184,4 +188,17 @@ export async function threadPosts(threadId: number, page = 1) {
 export function pageNumber(value: string | undefined) {
   const page = Number(value ?? 1);
   return Number.isSafeInteger(page) && page > 0 && page <= 100000 ? page : 1;
+}
+
+/** Rank only readable forums, counting discussions that remain visible. */
+export async function topSubforums() {
+  const allowed = await availableForums();
+  if (!allowed.length) return [];
+  return createReadDatabase().select({
+    id: forums.id, slug: forums.slug, title: forums.title,
+    discussionCount: sql<number>`count(${threads.id})::int`,
+  }).from(forums).innerJoin(threads, and(
+    eq(threads.forumId, forums.id), isNull(threads.deletedAt), ne(threads.status, "deleted"),
+  )).where(inArray(forums.id, allowed.map(({ forum }) => forum.id)))
+    .groupBy(forums.id).orderBy(desc(sql`count(${threads.id})`), asc(forums.title), asc(forums.id)).limit(4);
 }

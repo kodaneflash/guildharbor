@@ -77,6 +77,8 @@ export const attachmentStateEnum = pgEnum("attachment_state", [
 export const conversationTypeEnum = pgEnum("conversation_type", [
   "direct",
   "group",
+  "deal",
+  "order",
 ]);
 
 export const users = pgTable(
@@ -223,6 +225,13 @@ export const profiles = pgTable(
     avatarUrl: text("avatar_url"),
     bannerUrl: text("banner_url"),
     telegramHandle: text("telegram_handle"),
+    discordHandle: text("discord_handle"),
+    showTelegram: boolean("show_telegram").default(false).notNull(),
+    showDiscord: boolean("show_discord").default(false).notNull(),
+    showLastSeen: boolean("show_last_seen").default(false).notNull(),
+    preferredContact: text("preferred_contact").default("any").notNull(),
+    locale: text("locale").default("en").notNull(),
+    timezone: text("timezone").default("UTC").notNull(),
     bio: text("bio").default("").notNull(),
     signature: jsonb("signature")
       .default({ type: "doc", content: [] })
@@ -244,6 +253,9 @@ export const profiles = pgTable(
     updatedAt,
   },
   (table) => [
+    check("profiles_locale_valid", sql`${table.locale} = 'en'`),
+    check("profiles_preferred_contact_valid", sql`${table.preferredContact} in ('email', 'telegram', 'discord', 'any')`),
+    check("profiles_contact_configured", sql`(${table.preferredContact} <> 'telegram' or nullif(${table.telegramHandle}, '') is not null) and (${table.preferredContact} <> 'discord' or nullif(${table.discordHandle}, '') is not null)`),
     check("profiles_reputation_nonnegative", sql`${table.reputation} >= 0`),
     check(
       "profiles_vouch_positive_nonnegative",
@@ -740,6 +752,9 @@ export const notifications = pgTable(
       onDelete: "set null",
     }),
     type: text("type").notNull(),
+    resourceType: text("resource_type"),
+    resourceId: text("resource_id"),
+    eventKey: text("event_key").unique(),
     title: text("title").notNull(),
     href: text("href").notNull(),
     readAt: timestamp("read_at", { withTimezone: true }),
@@ -763,6 +778,10 @@ export const attachments = pgTable(
       .notNull(),
     state: attachmentStateEnum("state").default("pending").notNull(),
     purpose: text("purpose").notNull(),
+    resourceId: text("resource_id"),
+    scanStatus: text("scan_status").default("pending").notNull(),
+    scannedAt: timestamp("scanned_at", { withTimezone: true }),
+    originalName: text("original_name"),
     storageKey: text("storage_key").notNull().unique(),
     mediaType: text("media_type").notNull(),
     byteSize: integer("byte_size").notNull(),
@@ -937,3 +956,71 @@ export const siteSettings = pgTable("site_settings", {
   version: integer("version").default(1).notNull(),
   updatedAt,
 });
+
+export const sellerProfiles = pgTable("seller_profiles", {
+  userId: text("user_id").primaryKey().references(() => users.id, { onDelete: "restrict" }),
+  name: text("name").notNull(), description: text("description").notNull(),
+  status: text("status").default("active").notNull(),
+  policyVersion: text("policy_version").notNull(), policyAcceptedAt: timestamp("policy_accepted_at", { withTimezone: true }).notNull(),
+  createdAt, updatedAt,
+}, table => [check("seller_status_valid", sql`${table.status} in ('active','suspended','closed')`)]);
+export const marketplaceCategories = pgTable("marketplace_categories", {
+  id: uuid("id").defaultRandom().primaryKey(), slug: text("slug").notNull().unique(), name: text("name").notNull(),
+  parentId: uuid("parent_id").references((): AnyPgColumn => marketplaceCategories.id, { onDelete: "restrict" }),
+  archivedAt: timestamp("archived_at", { withTimezone: true }), createdAt, updatedAt,
+}, table => [check("marketplace_category_not_self", sql`${table.parentId} is null or ${table.parentId} <> ${table.id}`)]);
+export const listings = pgTable("listings", {
+  id: uuid("id").defaultRandom().primaryKey(), sellerId: text("seller_id").notNull().references(() => sellerProfiles.userId, { onDelete: "restrict" }),
+  categoryId: uuid("category_id").references(() => marketplaceCategories.id, { onDelete: "restrict" }),
+  title: text("title").notNull(), slug: text("slug").notNull(), description: text("description").notNull(),
+  kind: text("kind").notNull(), fulfillmentMode: text("fulfillment_mode").notNull(), deliveryTerms: text("delivery_terms").notNull(),
+  priceCents: integer("price_cents").notNull(), available: boolean("available").default(true).notNull(),
+  status: text("status").default("draft").notNull(), version: integer("version").default(1).notNull(), createdAt, updatedAt,
+}, table => [check("listing_positive_price", sql`${table.priceCents} > 0`), check("listing_kind_valid", sql`${table.kind} in ('digital','service')`), check("listing_fulfillment_valid", sql`${table.fulfillmentMode} in ('text','file','manual')`), check("listing_status_valid", sql`${table.status} in ('draft','published','paused','archived','removed')`), check("listing_version_positive", sql`${table.version} > 0`), index("listing_discovery_idx").on(table.status, table.categoryId, table.createdAt), index("listing_seller_idx").on(table.sellerId, table.id)]);
+export const listingRevisions = pgTable("listing_revisions", {
+  id: uuid("id").defaultRandom().primaryKey(), listingId: uuid("listing_id").notNull().references(() => listings.id, { onDelete: "restrict" }),
+  version: integer("version").notNull(), title: text("title").notNull(), description: text("description").notNull(),
+  kind: text("kind").notNull(), priceCents: integer("price_cents").notNull(), fulfillmentMode: text("fulfillment_mode").notNull(), deliveryTerms: text("delivery_terms").notNull(),
+  protectedText: text("protected_text"), protectedFileId: uuid("protected_file_id").references(() => attachments.id, { onDelete: "restrict" }), createdAt,
+}, table => [uniqueIndex("listing_revision_unique").on(table.listingId, table.version), check("revision_positive_price", sql`${table.priceCents} > 0`)]);
+export const listingFavorites = pgTable("listing_favorites", {
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }), listingId: uuid("listing_id").notNull().references(() => listings.id, { onDelete: "restrict" }), createdAt,
+}, table => [primaryKey({ columns: [table.userId, table.listingId] })]);
+export const carts = pgTable("carts", {
+  userId: text("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }), version: integer("version").default(1).notNull(), createdAt, updatedAt,
+});
+export const cartItems = pgTable("cart_items", {
+  userId: text("user_id").notNull().references(() => carts.userId, { onDelete: "cascade" }), listingId: uuid("listing_id").notNull().references(() => listings.id, { onDelete: "restrict" }), addedPriceCents: integer("added_price_cents").notNull(), createdAt,
+}, table => [primaryKey({ columns: [table.userId, table.listingId] })]);
+export const domainAuditEvents = pgTable("domain_audit_events", {
+  id: uuid("id").defaultRandom().primaryKey(), actorId: text("actor_id").notNull().references(() => users.id, { onDelete: "restrict" }),
+  resourceType: text("resource_type").notNull(), resourceId: text("resource_id").notNull(), action: text("action").notNull(), reason: text("reason").notNull(), metadata: jsonb("metadata").notNull().default({}), createdAt,
+}, table => [index("domain_audit_resource_idx").on(table.resourceType, table.resourceId, table.createdAt)]);
+export const legacyListingImports = pgTable("legacy_listing_imports", {
+  legacyThreadId: bigint("legacy_thread_id", { mode: "number" }).primaryKey(), listingId: uuid("listing_id").references(() => listings.id, { onDelete: "restrict" }),
+  sourceRecord: jsonb("source_record").notNull(), sourceChecksum: text("source_checksum").notNull(), status: text("status").notNull().default("needs_review"), createdAt,
+});
+
+export const notificationPreferences = pgTable("notification_preferences", {
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  eventType: text("event_type").notNull(), inApp: boolean("in_app").default(true).notNull(), email: boolean("email").default(false).notNull(), updatedAt,
+}, table => [primaryKey({ columns: [table.userId, table.eventType] })]);
+export const notificationOutbox = pgTable("notification_outbox", {
+  id: uuid("id").defaultRandom().primaryKey(), notificationId: bigint("notification_id", { mode: "number" }).notNull().unique().references(() => notifications.id, { onDelete: "restrict" }),
+  status: text("status").default("pending").notNull(), attempts: integer("attempts").default(0).notNull(), availableAt: timestamp("available_at", { withTimezone: true }).defaultNow().notNull(),
+  leaseUntil: timestamp("lease_until", { withTimezone: true }), lastError: text("last_error"), deliveredAt: timestamp("delivered_at", { withTimezone: true }), createdAt,
+}, table => [check("outbox_status_valid", sql`${table.status} in ('pending','processing','delivered','skipped','failed')`), index("outbox_pending_idx").on(table.status, table.availableAt)]);
+export const deals = pgTable("deals", {
+  id: uuid("id").defaultRandom().primaryKey(), creatorId: text("creator_id").notNull().references(() => users.id, { onDelete: "restrict" }), respondentId: text("respondent_id").references(() => users.id, { onDelete: "restrict" }),
+  payerId: text("payer_id").references(() => users.id, { onDelete: "restrict" }), name: text("name").notNull(), amountCents: integer("amount_cents").notNull(), terms: text("terms").notNull(),
+  state: text("state").default("DRAFT").notNull(), version: integer("version").default(1).notNull(), conversationId: uuid("conversation_id").unique().references(() => conversations.id, { onDelete: "restrict" }),
+  createdAt, updatedAt,
+}, table => [check("deal_pre_funding_states", sql`${table.state} in ('DRAFT','PENDING_ACCEPTANCE','AWAITING_FUNDING','DECLINED','CANCELLED')`), check("deal_positive_amount", sql`${table.amountCents} > 0`), check("deal_distinct_parties", sql`${table.respondentId} is null or ${table.creatorId} <> ${table.respondentId}`), check("deal_payer_party", sql`${table.payerId} is null or ${table.payerId} = ${table.creatorId} or ${table.payerId} = ${table.respondentId}`), index("deal_creator_idx").on(table.creatorId, table.createdAt), index("deal_respondent_idx").on(table.respondentId, table.createdAt)]);
+export const dealTerms = pgTable("deal_terms", {
+  dealId: uuid("deal_id").primaryKey().references(() => deals.id, { onDelete: "restrict" }), version: integer("version").notNull(), name: text("name").notNull(), terms: text("terms").notNull(), amountCents: integer("amount_cents").notNull(),
+  payerId: text("payer_id").notNull().references(() => users.id), creatorId: text("creator_id").notNull().references(() => users.id), respondentId: text("respondent_id").notNull().references(() => users.id), createdAt,
+});
+export const dealAcceptances = pgTable("deal_acceptances", { dealId: uuid("deal_id").notNull().references(() => dealTerms.dealId, { onDelete: "restrict" }), userId: text("user_id").notNull().references(() => users.id), termsVersion: integer("terms_version").notNull(), createdAt }, table => [primaryKey({ columns: [table.dealId, table.userId] })]);
+export const dealEvents = pgTable("deal_events", { id: uuid("id").defaultRandom().primaryKey(), dealId: uuid("deal_id").notNull().references(() => deals.id, { onDelete: "restrict" }), actorId: text("actor_id").notNull().references(() => users.id), operationId: uuid("operation_id").notNull(), requestVersion: integer("request_version"), action: text("action").notNull(), resultingState: text("resulting_state").notNull(), createdAt }, table => [uniqueIndex("deal_event_operation_unique").on(table.actorId, table.operationId)]);
+export const supportCases = pgTable("support_cases", { id: uuid("id").defaultRandom().primaryKey(), creatorId: text("creator_id").notNull().references(() => users.id), dealId: uuid("deal_id").references(() => deals.id), conversationId: uuid("conversation_id").references(() => conversations.id), subject: text("subject").notNull(), status: text("status").default("open").notNull(), assignedToId: text("assigned_to_id").references(() => users.id), createdAt, updatedAt }, table => [check("support_state_valid", sql`${table.status} in ('open','in_review','resolved','closed')`)]);
+export const supportEvents = pgTable("support_events", { id: uuid("id").defaultRandom().primaryKey(), caseId: uuid("case_id").notNull().references(() => supportCases.id), actorId: text("actor_id").notNull().references(() => users.id), kind: text("kind").notNull(), body: text("body").notNull(), createdAt });

@@ -1,5 +1,7 @@
 # GuildHarbor implementation analysis
 
+> Historical report, superseded by roadmap.md. Its fixture, caching, marketplace and guest-access findings do not describe the current checkout. Retained for provenance only.
+
 Reviewed September 12, 2026. Scope: repository source, local development startup, public browser rendering, existing automated checks, and production compilation. Cloud credentials were not supplied; database migrations, real authentication, email delivery, and R2 uploads were not exercised. “Implemented” below describes code present, not an assertion that every configured integration has passed an end-to-end test.
 
 ## Overall assessment

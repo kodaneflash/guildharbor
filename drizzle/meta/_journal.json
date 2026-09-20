@@ -22,6 +22,48 @@
       "when": 1789193112858,
       "tag": "0002_private_forum",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1789885752514,
+      "tag": "0003_profile_preferences",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1789886412497,
+      "tag": "0004_commerce_foundation",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1789887092404,
+      "tag": "0005_notification_delivery",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789887659764,
+      "tag": "0006_unfunded_deals_support",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1789888093811,
+      "tag": "0007_resource_file_scanning",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1789889253897,
+      "tag": "0008_deal_request_version",
+      "breakpoints": true
     }
   ]
 }

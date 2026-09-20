@@ -1,78 +1,24 @@
+import { ResourceUpload } from "./resource-upload";
+import { ResourceFiles } from "./resource-files";
+import { randomUUID } from "node:crypto";
 import Link from "next/link";
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, ilike, isNull, isNotNull, or, sql } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { z } from "zod";
-import { communityNotice } from "@/components/access-notice";
 import { requireMember } from "@/lib/session";
 import { createReadDatabase } from "@/db/client";
-import { conversationMembers, conversations } from "@/db/schema";
+import { conversationMembers, conversations, users } from "@/db/schema";
 import { listConversationMessages } from "@/db/queries/message-queries";
-export async function MessagesWorkspace({ activeId }: { activeId?: string }) {
-  const notice = await communityNotice();
-  if (notice) return notice;
-  const access = await requireMember();
-  const database = createReadDatabase();
-  const rows = await database
-    .select({ id: conversations.id, title: conversations.type })
-    .from(conversationMembers)
-    .innerJoin(
-      conversations,
-      eq(conversations.id, conversationMembers.conversationId),
-    )
-    .where(
-      and(
-        eq(conversationMembers.userId, access.user.id),
-        isNull(conversationMembers.archivedAt),
-      ),
-    )
-    .orderBy(desc(conversations.latestMessageAt))
-    .limit(50);
+import { ComposeConversation, ConversationControls, ConversationPolling, MessageComposer } from "./message-controls";
+import { viewerTimezone } from "@/lib/viewer-timezone";
+import { pageNumber } from "@/db/queries/community";
+export async function MessagesWorkspace({ activeId, search = {} }: { activeId?: string; search?: { to?: string; q?: string; page?: string; before?: string; archived?: string } }) {
+  const access = await requireMember(); const database = createReadDatabase(); const page = pageNumber(search.page); const timeZone = await viewerTimezone();
+  const rows = await database.select({ id: conversations.id, type: conversations.type, lastRead: conversationMembers.lastReadMessageId, latestId: conversations.latestMessageId, username: users.username }).from(conversationMembers).innerJoin(conversations, eq(conversations.id, conversationMembers.conversationId)).leftJoin(users, sql`${users.id} = case when ${conversations.directUserLowId} = ${access.user.id} then ${conversations.directUserHighId} else ${conversations.directUserLowId} end`).where(and(eq(conversationMembers.userId, access.user.id), search.archived === "1" ? isNotNull(conversationMembers.archivedAt) : isNull(conversationMembers.archivedAt), search.q ? or(ilike(users.username, `%${search.q.slice(0, 100)}%`), sql`exists (select 1 from messages m where m.conversation_id = ${conversations.id} and m.deleted_at is null and m.plain_text ilike ${`%${search.q.slice(0, 100)}%`})`) : undefined)).orderBy(desc(conversations.latestMessageAt), desc(conversations.id)).limit(30).offset((page - 1) * 30);
   if (activeId && !z.uuid().safeParse(activeId).success) notFound();
-  const messages = activeId
-    ? await listConversationMessages(database, access.user.id, activeId)
-    : null;
-  if (activeId && !messages) notFound();
-  return (
-    <div className="site-container py-8">
-      <div className="surface grid min-h-[500px] lg:grid-cols-[320px_minmax(0,1fr)]">
-        <aside className="border-r border-border p-5">
-          <h1 className="text-xl font-extrabold">Messages</h1>
-          <div className="mt-5 space-y-3">
-            {rows.map((row) => (
-              <Link
-                className="block rounded border border-border p-4"
-                href={`/messages/${row.id}`}
-                key={row.id}
-              >
-                {row.title || "Conversation"}
-              </Link>
-            ))}
-            {!rows.length && (
-              <p className="text-sm text-text-muted">No conversations yet.</p>
-            )}
-          </div>
-        </aside>
-        <section className="space-y-4 p-6">
-          {messages ? (
-            [...messages].reverse().map((message) => (
-              <article
-                key={message.id}
-                className="rounded border border-border p-4"
-              >
-                <p className="whitespace-pre-wrap text-sm">
-                  {message.plainText}
-                </p>
-                <time className="mt-2 block text-xs text-text-muted">
-                  {message.createdAt.toISOString()}
-                </time>
-              </article>
-            ))
-          ) : (
-            <p className="text-text-muted">Select a conversation.</p>
-          )}
-          {messages?.length === 0 && <p>No messages.</p>}
-        </section>
-      </div>
-    </div>
-  );
+  const before = search.before ? Number(search.before) : undefined; if (before !== undefined && (!Number.isSafeInteger(before) || before < 1)) notFound();
+  const entries = activeId ? await listConversationMessages(database, access.user.id, activeId, before) : null;
+  if (activeId && !entries) notFound();
+  const [active] = activeId ? await database.select({ type: conversations.type, membership: conversationMembers }).from(conversationMembers).innerJoin(conversations, eq(conversations.id, conversationMembers.conversationId)).where(and(eq(conversationMembers.userId, access.user.id), eq(conversationMembers.conversationId, activeId))) : [];
+  return <div className="site-container space-y-5 py-8"><h1 className="text-display-sm font-bold">Messages</h1><div className="surface grid lg:grid-cols-[320px_minmax(0,1fr)]"><aside className="space-y-5 border-border p-5 lg:border-r"><ComposeConversation username={search.to} /><form className="space-y-2"><label className="block">Search your conversations<input className="field mt-2" name="q" defaultValue={search.q} maxLength={100} /></label><label className="flex gap-2"><input type="checkbox" name="archived" value="1" defaultChecked={search.archived === "1"} />Archived</label><button className="button-secondary">Search</button></form>{rows.map(row => <Link className="block rounded border border-border p-3" key={row.id} href={`/messages/${row.id}`}>{row.username ? `@${row.username}` : `${row.type} conversation`}{row.latestId && row.latestId > (row.lastRead ?? 0) ? " · Unread" : ""}</Link>)}{!rows.length && <p>No conversations in this view.</p>}<nav className="flex gap-3" aria-label="Inbox pagination">{page > 1 && <Link href={`?${new URLSearchParams({ q: search.q ?? "", archived: search.archived ?? "", page: String(page - 1) })}`}>Previous</Link>}{rows.length === 30 && <Link href={`?${new URLSearchParams({ q: search.q ?? "", archived: search.archived ?? "", page: String(page + 1) })}`}>Next</Link>}</nav></aside><section className="min-w-0 space-y-4 p-5">{activeId && active && entries ? <><ConversationPolling conversationId={activeId} latestId={entries[0]?.id} /><ConversationControls id={activeId} direct={active.type === "direct"} archived={Boolean(active.membership.archivedAt)} muted={Boolean(active.membership.mutedUntil && active.membership.mutedUntil > new Date())} latestId={entries[0]?.id} />{entries.length === 50 && <Link href={`?before=${entries[entries.length - 1].id}`}>Older messages</Link>}{before && <Link href={`/messages/${activeId}`}>Latest messages</Link>}{[...entries].reverse().map(message => <article key={message.id} id={`message-${message.id}`} className="space-y-2 rounded border border-border p-4"><p className="text-body-xs text-text-muted">#{message.id} · {message.senderId === access.user.id ? "You" : "Participant"}{message.replyToMessageId ? ` · Reply to #${message.replyToMessageId}` : ""}</p><p className="whitespace-pre-wrap break-words">{message.plainText}</p><time className="text-body-xs text-text-muted" dateTime={message.createdAt.toISOString()}>{message.createdAt.toLocaleString("en-US", { timeZone })}</time></article>)}{!entries.length && <p>No messages yet.</p>}<ResourceFiles purpose="conversation" resourceId={activeId} /><ResourceUpload purpose="conversation" resourceId={activeId} /><Link className="text-category" href={`/support?conversation=${activeId}`}>Request conversation support</Link><MessageComposer conversationId={activeId} requestId={randomUUID()} /></> : <p>Select a conversation or enter a member’s username.</p>}</section></div></div>;
 }
