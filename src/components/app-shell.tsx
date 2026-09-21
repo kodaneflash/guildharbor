@@ -6,18 +6,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-page-deep">
       <Suspense
-        fallback={<div className="h-[86px] border-b border-border bg-page" />}
+        fallback={<div className="h-[76px] bg-page-deep" />}
       >
         <Header />
       </Suspense>
-      <main id="main-content" className="min-h-[calc(100vh-86px)] bg-page">
+      <main id="main-content" className="min-h-screen bg-page pt-[76px]">
         {children}
       </main>
       <footer className="border-t border-border bg-page-deep">
         <div className="site-container flex flex-col gap-3 py-8 text-body-xs text-text-muted sm:flex-row sm:items-center sm:justify-between">
-          <p>
-            © 2026 GuildHarbor. Community feedback is not a guarantee of safety.
-          </p>
+          <p>© 2026 GuildHarbor.</p>
           <nav className="flex flex-wrap gap-4" aria-label="Footer">
             <a href="/rules" className="hover:text-text">
               Rules

@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 
-import { AppShell } from "@/components/app-shell";
 import { fkGrotesk } from "@/lib/fonts";
 
 import "./globals.css";
@@ -36,7 +35,7 @@ export default function RootLayout({
         >
           Skip to content
         </a>
-        <AppShell>{children}</AppShell>
+        {children}
       </body>
     </html>
   );

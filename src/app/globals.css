@@ -106,27 +106,27 @@ body {
   }
 
   h1 {
-    @apply font-display text-display-xl;
+    @apply font-display text-display-sm;
   }
 
   h2 {
-    @apply font-display text-display-md;
+    @apply font-display text-heading-lg;
   }
 
   h3 {
-    @apply text-heading-xl;
-  }
-
-  h4 {
-    @apply text-heading-lg;
-  }
-
-  h5 {
     @apply text-heading-md;
   }
 
-  h6 {
+  h4 {
     @apply text-heading-sm;
+  }
+
+  h5 {
+    @apply text-body-md;
+  }
+
+  h6 {
+    @apply text-body-sm;
   }
 
   p {
@@ -134,56 +134,61 @@ body {
   }
 }
 
+/* Match the reference protocol heading: FK Grotesk Light, never synthetic bold. */
+:where(h1, h2, h3, h4, h5, h6) {
+  font-weight: 300;
+}
+
 @utility font-display {
   font-family: var(--font-display), var(--font-sans), sans-serif;
 }
 
 @utility text-display-xl {
-  font-size: 3.75rem;
-  line-height: 1.05;
-  letter-spacing: -0.035em;
+  font-size: 2rem;
+  line-height: 1.2;
+  letter-spacing: normal;
 }
 
 @utility text-display-lg {
-  font-size: 3rem;
-  line-height: 1.1;
-  letter-spacing: -0.03em;
+  font-size: 1.875rem;
+  line-height: 1.2;
+  letter-spacing: normal;
 }
 
 @utility text-display-md {
-  font-size: 2.25rem;
-  line-height: 1.15;
-  letter-spacing: -0.025em;
+  font-size: 1.75rem;
+  line-height: 1.2;
+  letter-spacing: normal;
 }
 
 @utility text-display-sm {
-  font-size: 1.875rem;
+  font-size: 1.625rem;
   line-height: 1.2;
-  letter-spacing: -0.02em;
+  letter-spacing: normal;
 }
 
 @utility text-heading-xl {
-  font-size: 1.5rem;
-  line-height: 1.3;
-  font-weight: 600;
+  font-size: 1.375rem;
+  line-height: 1.4;
+  font-weight: 400;
 }
 
 @utility text-heading-lg {
   font-size: 1.25rem;
-  line-height: 1.35;
-  font-weight: 600;
+  line-height: 1.4;
+  font-weight: 400;
 }
 
 @utility text-heading-md {
   font-size: 1.125rem;
-  line-height: 1.4;
-  font-weight: 600;
+  line-height: 1.5;
+  font-weight: 400;
 }
 
 @utility text-heading-sm {
   font-size: 1rem;
-  line-height: 1.45;
-  font-weight: 600;
+  line-height: 1.5;
+  font-weight: 400;
 }
 
 @utility text-body-xl {
@@ -239,6 +244,61 @@ select:focus-visible {
 ::selection {
   background: color-mix(in srgb, var(--category) 40%, transparent);
   color: white;
+}
+
+.nav-primary-button,
+.nav-secondary-button,
+.nav-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.625rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.25rem;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.nav-primary-button {
+  min-height: 2.75rem;
+  background: #12a595;
+  padding-inline: 1.125rem;
+  color: white;
+}
+
+.nav-primary-button:hover {
+  background: #14b8a6;
+  transform: translateY(-1px);
+}
+
+.nav-secondary-button {
+  min-height: 2.75rem;
+  border: 1px solid rgb(255 255 255 / 0.12);
+  background: rgb(255 255 255 / 0.035);
+  padding-inline: 1.125rem;
+  color: #e4e4e7;
+}
+
+.nav-secondary-button:hover {
+  border-color: rgb(255 255 255 / 0.2);
+  background: rgb(255 255 255 / 0.07);
+}
+
+.nav-icon-button {
+  min-width: 2.25rem;
+  height: 2.25rem;
+  color: #a1a1aa;
+}
+
+.nav-icon-button:hover {
+  background: rgb(255 255 255 / 0.06);
+  color: white;
+}
+
+.gh-navbar :where(a, button):focus-visible {
+  outline: 2px solid #14b8a6;
+  outline-offset: 3px;
 }
 
 .site-container {

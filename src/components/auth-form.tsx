@@ -246,7 +246,7 @@ export function VerifyEmailForm({
     });
     if (!response.ok)
       return { status: "error", message: await parseError(response) };
-    window.location.assign(`/sign-in?returnTo=${encodeURIComponent(returnTo)}`);
+    window.location.assign(returnTo);
     return { status: "success", message: "Email verified." };
   }
   const [state, action, isPending] = useActionState(verify, initialState);
@@ -405,7 +405,7 @@ function AuthCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="site-container grid min-h-[calc(100vh-170px)] place-items-center py-10">
+    <div className="site-container grid min-h-screen place-items-center py-10">
       <section className="surface w-full max-w-md p-5 sm:p-7">
         <h1 className="text-heading-xl font-extrabold text-text">{title}</h1>
         <p className="mt-2 text-body-sm leading-6 text-text-muted">{description}</p>

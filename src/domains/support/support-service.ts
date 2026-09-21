@@ -59,7 +59,7 @@ export async function updateCase(input: unknown) {
       await tx.update(deals).set({ state: "CANCELLED", version: deal.version + 1, updatedAt: new Date() }).where(eq(deals.id, deal.id));
       await tx.insert(dealEvents).values({ dealId: deal.id, actorId: session.user.id, operationId: crypto.randomUUID(), requestVersion: deal.version, action: "support_cancel", resultingState: "CANCELLED" });
       await tx.insert(domainAuditEvents).values({ actorId: session.user.id, resourceType: "deal", resourceId: deal.id, action: "deal.case_cancel", reason: data.body, metadata: { caseId: record.id } });
-      for (const userId of [deal.creatorId, deal.respondentId]) if (userId) await notifyMember(tx, { userId, actorId: session.user.id, type: "deal.updated", resourceType: "deal", resourceId: deal.id, eventKey: `case-cancel:${deal.id}:${deal.version}:${userId}`, title: "Unfunded agreement cancelled by support", href: `/deals/${deal.id}` });
+      for (const userId of [deal.creatorId, deal.respondentId]) if (userId) await notifyMember(tx, { userId, actorId: session.user.id, type: "deal.updated", resourceType: "deal", resourceId: deal.id, eventKey: `case-cancel:${deal.id}:${deal.version}:${userId}`, title: "Unfunded agreement cancelled by support", href: `/escrow/${deal.id}` });
     }
     const status = data.action === "resolve" ? "resolved" : data.action === "close" ? "closed" : data.action === "reopen" ? "open" : record.status;
     await tx.update(supportCases).set({ status, updatedAt: new Date() }).where(eq(supportCases.id, record.id));

@@ -59,6 +59,9 @@ function createAuth() {
       minPasswordLength: 12,
       maxPasswordLength: 128,
     },
+    emailVerification: {
+      autoSignInAfterVerification: true,
+    },
     user: {
       additionalFields: {
         accountStatus: {

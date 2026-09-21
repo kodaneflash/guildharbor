@@ -165,9 +165,8 @@ async function register(username: string) {
     otp: context.otps.get(email),
   });
   expect(verify.response.status, JSON.stringify(verify.json)).toBe(200);
-  const login = await authRequest("/sign-in/email", { email, password });
-  expect(login.response.status, JSON.stringify(login.json)).toBe(200);
-  return { id: signup.json.user.id as string, cookie: login.cookie };
+  expect(verify.cookie).toContain("guildharbor.session_token=");
+  return { id: signup.json.user.id as string, cookie: verify.cookie };
 }
 function asUser(cookie = "") {
   context.headers = new Headers({ Cookie: cookie });

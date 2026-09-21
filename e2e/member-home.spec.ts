@@ -32,7 +32,9 @@ test("member discovery, cart persistence, seller routing and responsive accessib
     await page.getByLabel("Email", { exact: true }).fill(`${buyer}@example.test`);
     await page.getByLabel("Password", { exact: true }).fill(password);
     await page.getByRole("button", { name: "Sign in", exact: true }).click();
-    await expect(page.getByRole("heading", { name: "Discover GuildHarbor" })).toBeVisible({ timeout: 30000 });
+    await expect(page.getByRole("heading", { name: "Latest listings" })).toBeVisible({ timeout: 30000 });
+    await expect(page.getByText("Discover GuildHarbor", { exact: true })).toHaveCount(0);
+    await expect(page.getByText("All listings and filters", { exact: true })).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Open a store", exact: true })).toHaveAttribute("href", "/seller/onboarding");
     const row = page.getByRole("article").filter({ has: page.getByRole("heading", { name: title }) });
     await expect(row).toContainText("$12.34 USD");
@@ -40,7 +42,7 @@ test("member discovery, cart persistence, seller routing and responsive accessib
     await row.getByRole("button", { name: /Add to cart/ }).click();
     await expect(row.getByRole("status")).toHaveText("Saved to your account.");
     await page.reload();
-    await expect(page.getByRole("heading", { name: "Discover GuildHarbor" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Latest listings" })).toBeVisible();
     if (testInfo.project.name === "desktop") {
       const left = await page.getByRole("complementary", { name: "Marketplace discovery" }).boundingBox();
       const center = await page.getByRole("region", { name: "Latest listings" }).boundingBox();

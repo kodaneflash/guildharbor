@@ -40,6 +40,8 @@ test("authentication pages remain accessible and reflow at 320px", async ({ page
   for (const path of ["/sign-in", "/sign-up", "/forgot-password", "/reset-password", "/verify-email", "/two-factor"]) {
     await page.goto(path);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await expect(page.getByRole("banner")).toHaveCount(0);
+    await expect(page.getByRole("contentinfo")).toHaveCount(0);
     await page.setViewportSize({ width: 320, height: 800 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();

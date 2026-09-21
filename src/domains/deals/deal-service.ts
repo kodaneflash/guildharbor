@@ -57,7 +57,7 @@ export async function transitionDeal(input: unknown) {
     await tx.insert(dealEvents).values({ dealId: deal.id, actorId: access.user.id, operationId: data.operationId, requestVersion: data.version, action: data.action, resultingState: state });
     await tx.insert(domainAuditEvents).values({ actorId: access.user.id, resourceType: "deal", resourceId: deal.id, action: `deal.${data.action}`, reason: "Participant agreement transition", metadata: { state, version: deal.version } });
     const recipient = access.user.id === deal.creatorId ? deal.respondentId : deal.creatorId;
-    if (recipient && (deal.state !== "DRAFT" || data.action === "invite")) await notifyMember(tx, { userId: recipient, actorId: access.user.id, type: "deal.updated", resourceType: "deal", resourceId: deal.id, eventKey: `deal:${data.operationId}:${recipient}`, title: "Agreement updated", href: `/deals/${deal.id}` });
+    if (recipient && (deal.state !== "DRAFT" || data.action === "invite")) await notifyMember(tx, { userId: recipient, actorId: access.user.id, type: "deal.updated", resourceType: "deal", resourceId: deal.id, eventKey: `deal:${data.operationId}:${recipient}`, title: "Agreement updated", href: `/escrow/${deal.id}` });
     return { state };
   });
 }
