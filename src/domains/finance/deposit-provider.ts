@@ -22,7 +22,7 @@ export const instructionsSchema = z.object({
   payin_extra_id: z.string().max(250).nullish(),
   network: z.string(), network_precision: z.string(),
   smart_contract: z.string().nullish(), expiration_estimate_date: providerDate.nullish(), valid_until: providerDate.nullish(),
-  is_fixed_rate: z.union([z.literal(true), z.literal("true"), z.literal("True")]),
+  is_fixed_rate: z.union([z.literal(false), z.literal("false"), z.literal("False")]),
   is_fee_paid_by_user: z.union([z.literal(false), z.literal("false"), z.literal("False")]),
 });
 
@@ -48,14 +48,14 @@ export async function depositCapability(apiKey: string, ticker: string, settleme
   z.literal(financialPolicy.providerTicker).parse(settlementTicker);
   const asset = approvedDepositAsset(ticker);
   const settlement = approvedDepositAsset(settlementTicker);
-  const [full, enabled, fixed, minimum] = await Promise.all([
+  const [full, enabled, available, minimum] = await Promise.all([
     providerRequest("full-currencies", apiKey), providerRequest("merchant/coins", apiKey),
-    providerRequest("currencies?fixed_rate=true", apiKey),
-    providerRequest(`min-amount?currency_from=${ticker}&currency_to=${settlementTicker}&is_fixed_rate=true&is_fee_paid_by_user=false`, apiKey),
+    providerRequest("currencies?fixed_rate=false", apiKey),
+    providerRequest(`min-amount?currency_from=${ticker}&currency_to=${settlementTicker}&is_fixed_rate=false&is_fee_paid_by_user=false`, apiKey),
   ]);
   const coins = z.object({ currencies: z.array(z.object({ code: z.string() }).passthrough()) }).parse(full.data);
   const merchant = z.object({ selectedCurrencies: z.array(z.string()) }).parse(enabled.data);
-  const fixedCurrencies = z.object({ currencies: z.array(z.object({ currency: z.string() })) }).parse(fixed.data);
+  const availableCurrencies = z.object({ currencies: z.array(z.string()) }).parse(available.data);
   const coinSchema = z.object({ code: z.string(), enable: z.boolean(), network: z.string(),
     smart_contract: z.string().nullable(), network_precision: z.string().nullable(), extra_id_exists: z.boolean() });
   const coin = coinSchema.parse(coins.currencies.find(value => value.code.toLowerCase() === ticker));
@@ -65,7 +65,7 @@ export async function depositCapability(apiKey: string, ticker: string, settleme
     (coin.smart_contract || null)?.toLowerCase() === expected.tokenContract?.toLowerCase() && coin.extra_id_exists === expected.memoRequired;
   if (!matches(coin, asset) || !matches(outcome, settlement) ||
     ![ticker, settlementTicker].every(required => merchant.selectedCurrencies.some(value => value.toLowerCase() === required)) ||
-    ![ticker, settlementTicker].every(required => fixedCurrencies.currencies.some(value => value.currency.toLowerCase() === required))) {
+    ![ticker, settlementTicker].every(required => availableCurrencies.currencies.some(value => value.toLowerCase() === required))) {
     throw new ProviderReadError("invalid_evidence");
   }
   const min = z.object({ currency_from: z.literal(ticker), currency_to: z.literal(settlementTicker), min_amount: decimal }).parse(minimum.data);
@@ -77,7 +77,7 @@ export async function depositCapability(apiKey: string, ticker: string, settleme
 export async function createDirectDeposit(input: { apiKey: string; ticker: string; callbackUrl: string; commandId: string; priceUsd: string }) {
   // Serialize an exact decimal JSON number, never a JavaScript monetary number.
   const body = stringify({ price_amount: new LosslessNumber(input.priceUsd), price_currency: "usd", pay_currency: input.ticker,
-    order_id: input.commandId, ipn_callback_url: input.callbackUrl, is_fixed_rate: true, is_fee_paid_by_user: false });
+    order_id: input.commandId, ipn_callback_url: input.callbackUrl, is_fixed_rate: false, is_fee_paid_by_user: false });
   if (!body) throw new Error("Payment request unavailable.");
   return providerRequest("payment", input.apiKey, body);
 }

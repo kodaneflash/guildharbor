@@ -16,14 +16,18 @@ export const runtime = "nodejs";
 export async function POST(request: Request) {
   const headers = { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" };
   if (!financialServicingEnabled) return Response.json({ error: "Payment processing is not activated." }, { status: 503, headers });
-  const config = financialEvidenceConfig();
+  const signature = request.headers.get("x-nowpayments-sig");
+  if (!signature) return Response.json({ error: "Invalid notification signature." }, { status: 401, headers });
+  let config: ReturnType<typeof financialEvidenceConfig>;
+  try { config = financialEvidenceConfig(); }
+  catch { return Response.json({ error: "Payment processing configuration is incomplete." }, { status: 503, headers }); }
   let body: string;
   try {
     body = await readProviderBody(new Response(request.body));
   } catch {
     return Response.json({ error: "Invalid notification body." }, { status: 400, headers });
   }
-  const verified = verifyIpn(body, request.headers.get("x-nowpayments-sig"), config.ipnSecret);
+  const verified = verifyIpn(body, signature, config.ipnSecret);
   if (!verified) return Response.json({ error: "Invalid notification signature." }, { status: 401, headers });
   const receipt = await withTransaction(async tx => {
     const evidence = await retainEvidence(tx, {

@@ -34,6 +34,6 @@ test("unauthenticated financial mutations cannot create payments, charges or ful
     expect(response.status(), path).toBe(401);
     expect(response.headers()["cache-control"]).toContain("no-store");
   }
-  expect((await request.post("/api/payments/nowpayments/ipn", { data: {} })).status()).toBe(503);
+  expect((await request.post("/api/payments/nowpayments/ipn", { data: {} })).status()).toBe(401);
   expect((await request.post("/api/internal/maintenance", { data: {} })).status()).toBe(401);
 });

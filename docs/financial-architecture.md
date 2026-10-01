@@ -1,5 +1,18 @@
 # Core marketplace financial architecture
 
+## Current payment setup — October 1, 2026
+
+Owner-authorized activation enables both source gates. Deposits now request ordinary rates (`is_fixed_rate=false`, `is_fee_paid_by_user=false`); capability checks use the ordinary currency list and ordinary-rate pair minimum, not the empty fixed-rate list. Exact provider payment instructions, expiry, pay-in identity, actual final net USDT, duplicate protection and available custody backing checks remain enforced. Final credited USDT may differ from estimates.
+
+The allowlist supports one or two assets. Only USDT/Ethereum is configured initially: merchant primary, availability, contract, precision and ordinary minimum were verified read-only. BTC is hidden until conversion acceptance. This intentionally removes the unnecessary dependency on approving a second asset before USDT deposits can be used; it does not expand the supported currencies.
+
+The linked Vercel Production project `guildharbor`, serving `outlawsite.vercel.app`, now has API/IPN/callback/settlement/allowlist/evidence/delivery configuration installed securely from the ignored local environment. Deployment of this code is still required for the running website to use the changes. The provider IPN secret must match the installed value; no secret values belong in Git.
+
+NOWPayments may auto-process supported wrong-asset payments at its end. The app retains authoritative evidence, recognizes `wrong_asset_confirmed`, rejects changed pay-in/outcome identities and related child transfers for automatic credit, and keeps them under review under the original acceptance requirement. A provider `finished` flag alone never establishes safe customer credit. Provider settings are configured separately in the dashboard; this code change does not modify those settings.
+
+These facts supersede earlier fixed-rate, missing-configuration and mandatory-two-asset statements below. No live customer payment or BTC conversion has been verified.
+
+
 Implementation status: **October 1, 2026**. This supersedes the September 29 source audit. The local customer flow is connected and tested in isolated databases; it is not an activated or merchant-accepted release. See [verification](../VERIFICATION.md), [operations](financial-operations.md), and [migration preservation](../MIGRATIONS.md).
 
 ## Release boundary and scope

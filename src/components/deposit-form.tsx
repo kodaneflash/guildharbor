@@ -49,7 +49,7 @@ export function DepositForm({ assets }: { assets: { ticker: string; asset: strin
         placeholder="20.00" aria-describedby="deposit-price-help" className="w-full rounded-lg border border-border bg-background p-3" />
     </label>
     <p id="deposit-price-help" className="text-body-sm text-text-muted">We request the current equivalent in your selected asset, not a fixed $1 = 1 USDT conversion. Review the exact amount and estimated fees on the next screen before sending anything.</p>
-    <p className="text-body-sm text-text-muted">No platform deposit fee. Your balance receives actual settled USDT after provider fees. Your sending wallet or exchange may charge a separate network fee.</p>
+    <p className="text-body-sm text-text-muted">The exchange rate can change while your payment is processed. Your balance receives the USDT actually received after provider fees, which may differ from the estimate. No platform deposit fee. Your sending wallet or exchange may charge a separate network fee.</p>
     {error && <p role="alert">{error}</p>}
     <Button type="submit" disabled={busy || !assets.length}>{busy ? "Creating deposit instructions…" : "Review deposit instructions"}</Button>
   </form>;

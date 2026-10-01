@@ -3,6 +3,7 @@ import { sql } from "drizzle-orm";
 import { financialAccounts, financialJournals } from "@/db/schema";
 import { createReadDatabase } from "@/db/client";
 import { financialPolicy } from "./policy";
+import { newPurchasesEnabled } from "./gate";
 
 /** Read-only internal accounting check. Provider backing is deliberately a
  * separate result: balanced books alone are not evidence of custody funds.
@@ -41,7 +42,7 @@ export async function reconcileLedger() {
     balanced,
     issues,
     providerBackingVerified: false,
-    financialExecutionEnabled: false,
+    financialExecutionEnabled: newPurchasesEnabled,
   };
 }
 

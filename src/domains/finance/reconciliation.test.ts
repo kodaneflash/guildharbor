@@ -11,7 +11,7 @@ it("separates retained platform fees from member liabilities", async () => {
     { id: "revenue", currency: "USDT", kind: "platform_revenue", balance: "1000000" },
     { id: "backing", currency: "USDT", kind: "backing", balance: "-51000000" },
   ]);
-  expect(await reconcileLedger()).toMatchObject({ memberLiabilityAtoms: "50000000", platformRevenueAtoms: "1000000", backingBookAtoms: "51000000", balanced: true, issues: [], providerBackingVerified: false, financialExecutionEnabled: false });
+  expect(await reconcileLedger()).toMatchObject({ memberLiabilityAtoms: "50000000", platformRevenueAtoms: "1000000", backingBookAtoms: "51000000", balanced: true, issues: [], providerBackingVerified: false, financialExecutionEnabled: true });
 });
 
 it("reports an accounting mismatch without pretending that balanced books prove custody", async () => {

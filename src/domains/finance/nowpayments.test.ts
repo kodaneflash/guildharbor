@@ -19,9 +19,9 @@ describe("NOWPayments evidence boundary", () => {
     expect(() => parseProviderJson("[".repeat(33) + "0" + "]".repeat(33))).toThrow("nesting");
     expect(() => parseProviderJson('"' + "a".repeat(262_144) + '"')).toThrow("size");
   });
-  it("keeps execution disabled independently of environment toggles", () => {
-    vi.stubEnv("FINANCIAL_EXECUTION_ENABLED", "true");
-    expect(() => assertFinancialExecutionEnabled()).toThrow("unavailable");
+  it("enables the owner-authorized source gate independently of environment toggles", () => {
+    vi.stubEnv("FINANCIAL_EXECUTION_ENABLED", "false");
+    expect(() => assertFinancialExecutionEnabled()).not.toThrow();
     vi.unstubAllEnvs();
   });
   it("encrypts retained evidence with a fresh nonce and no plaintext", () => {

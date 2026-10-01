@@ -96,7 +96,9 @@ export async function observeDeposit(commandId: string, ownerId: string) {
       .where(eq(financialDeposits.commandId, commandId));
     if (status !== deposit.status) await financialEvent(tx, {
       memberId: ownerId, actorId: ownerId, eventKey: `deposit:${commandId}:${digest}`, kind: "deposit", resourceId: commandId,
-      message: status === "completed" && settledAtoms ? `Deposit completed: ${formatUsdt(settledAtoms)} USDT credited after fees.` : `Deposit status: ${status.replaceAll("_", " ")}.`,
+      message: status === "completed" && settledAtoms ? `Deposit completed: ${formatUsdt(settledAtoms)} USDT credited after fees.`
+        : status === "wrong_asset_or_network" ? "A different coin or network was received. The payment is under review; no balance has been credited."
+          : `Deposit status: ${status.replaceAll("_", " ")}.`,
     });
   });
 }

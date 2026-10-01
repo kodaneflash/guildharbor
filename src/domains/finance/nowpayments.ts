@@ -87,6 +87,7 @@ export function classifyDeposit(evidence: PaymentEvidence, expected: {
 }): DepositDisposition {
   if (evidence.payment_id !== expected.paymentId || evidence.order_id !== expected.reference ||
     evidence.parent_payment_id || evidence.payment_extra_ids?.length || evidence.pay_address !== expected.address || evidence.payin_extra_id !== expected.memo) return "manual_review";
+  if (evidence.payment_status === "wrong_asset_confirmed") return "wrong_asset_or_network";
   // Pay-in and settlement tickers identify separate assets, never equal units.
   if (evidence.pay_currency !== expected.currency || evidence.outcome_currency !== (expected.settlementCurrency ?? expected.currency)) return "wrong_asset_or_network";
   let quoted: bigint;

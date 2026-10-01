@@ -85,26 +85,29 @@ beforeEach(() => {
       { code: "BTC", enable: true, network: "btc", network_precision: 8, smart_contract: null, extra_id_exists: false },
     ] });
     if (path.endsWith("/merchant/coins")) return Response.json({ selectedCurrencies: ["USDTERC20", "BTC"] });
-    if (path.endsWith("/currencies")) return Response.json({ currencies: [
-      { currency: "usdterc20", min_amount: 1, max_amount: null },
-      { currency: "btc", min_amount: 0.0001, max_amount: null },
-    ] });
-    if (path.endsWith("/min-amount")) return Response.json({ currency_from: parsed.searchParams.get("currency_from"), currency_to: "usdterc20",
+    if (path.endsWith("/currencies")) {
+      expect(parsed.searchParams.get("fixed_rate")).toBe("false");
+      return Response.json({ currencies: ["usdterc20", "btc"] });
+    }
+    if (path.endsWith("/min-amount")) {
+      expect(parsed.searchParams.get("is_fixed_rate")).toBe("false");
+      return Response.json({ currency_from: parsed.searchParams.get("currency_from"), currency_to: "usdterc20",
       min_amount: parsed.searchParams.get("currency_from") === "btc" ? "0.0001" : "1" });
+    }
     if (path.endsWith("/estimate")) return Response.json({ currency_from: "usd", currency_to: parsed.searchParams.get("currency_to"),
       amount_from: parsed.searchParams.get("amount"), estimated_amount: parsed.searchParams.get("currency_to") === "btc" ? "0.00123456"
         : formatUsdt(parseAssetAmount(parsed.searchParams.get("amount") ?? "0", 2) * 9950n) });
     if (path.endsWith("/balance")) return Response.json({ usdterc20: { amount: formatUsdt(context.backingAtoms), pendingAmount: "0" } });
     if (path.endsWith("/payment") && options?.method === "POST") {
       context.creations++;
-      const request = z.object({ order_id: z.uuid(), price_amount: z.string(), pay_currency: z.string() }).parse(parseProviderJson(String(options.body)));
+      const request = z.object({ order_id: z.uuid(), price_amount: z.string(), pay_currency: z.string(), is_fixed_rate: z.literal(false), is_fee_paid_by_user: z.literal(false) }).parse(parseProviderJson(String(options.body)));
       const id = String(context.creations);
       const btc = request.pay_currency === "btc";
       const payment: ProviderPayment = { payment_id: id, order_id: request.order_id, price_amount: request.price_amount, price_currency: "usd",
         payment_status: "waiting", pay_currency: request.pay_currency, outcome_currency: "usdterc20", pay_amount: btc ? "0.00123456" : "19.9",
         pay_address: `0x${id.padStart(40, "0")}`, amount_received: "19.7", actually_paid: null, outcome_amount: null, payin_extra_id: null,
         network: btc ? "btc" : "eth", network_precision: btc ? "8" : "6", smart_contract: btc ? null : usdtContract,
-        valid_until: new Date(Date.now() + 600_000).toISOString(), is_fixed_rate: true, is_fee_paid_by_user: false, payin_hash: null };
+        valid_until: new Date(Date.now() + 600_000).toISOString(), is_fixed_rate: false, is_fee_paid_by_user: false, payin_hash: null };
       context.payments.set(id, payment);
       if (context.failCreation) throw new Error("Provider accepted but response was lost.");
       return Response.json(payment);
@@ -231,11 +234,13 @@ it("never resubmits an uncertain provider creation and recovers its original ide
   expect(context.creations).toBe(count + 1);
 });
 
-it.each(["wrong_asset", "usdc_settlement", "usdt_wrong_network", "partial", "overpaid", "invalid_net", "unbacked"])("does not credit %s evidence", async condition => {
+it.each(["wrong_asset", "wrong_payin_finished", "wrong_asset_confirmed", "usdc_settlement", "usdt_wrong_network", "partial", "overpaid", "invalid_net", "unbacked"])("does not credit %s evidence", async condition => {
   const buyer = await member();
   const deposit = await createDeposit(buyer, { requestId: randomUUID(), priceUsd: "20", currency: "usdterc20" });
   const payment = paymentFor(deposit.id); finish(payment);
   if (condition === "wrong_asset") payment.outcome_currency = "other";
+  if (condition === "wrong_payin_finished") payment.pay_currency = "btc";
+  if (condition === "wrong_asset_confirmed") payment.payment_status = "wrong_asset_confirmed";
   if (condition === "usdc_settlement") payment.outcome_currency = "usdcbase";
   if (condition === "usdt_wrong_network") payment.outcome_currency = "usdttrc20";
   if (condition === "partial") payment.actually_paid = "19";

@@ -18,14 +18,14 @@ export type ApprovedDepositAsset = z.infer<typeof assetSchema>;
 export function approvedDepositAssets(): ApprovedDepositAsset[] {
   const raw = process.env.NOWPAYMENTS_APPROVED_ASSETS;
   if (!raw) return [];
-  const parsed = z.array(assetSchema).length(2).safeParse(JSON.parse(raw));
+  const parsed = z.array(assetSchema).min(1).max(2).safeParse(JSON.parse(raw));
   if (!parsed.success) throw new Error("Merchant asset approval configuration is invalid.");
   const assets = parsed.data;
   const [settlement, additional] = assets;
   if (settlement.asset !== financialPolicy.asset || settlement.network !== financialPolicy.network || settlement.decimals !== financialPolicy.decimals ||
     settlement.tokenContract?.toLowerCase() !== financialPolicy.tokenContract.toLowerCase() || settlement.memoRequired ||
-    settlement.ticker !== financialPolicy.providerTicker || settlement.ticker !== process.env.NOWPAYMENTS_SETTLEMENT_TICKER || additional.ticker === settlement.ticker) {
-    throw new Error("Approved deposit assets must contain USDT/Ethereum and one verified conversion pair.");
+    settlement.ticker !== financialPolicy.providerTicker || settlement.ticker !== process.env.NOWPAYMENTS_SETTLEMENT_TICKER || additional?.ticker === settlement.ticker) {
+    throw new Error("Approved deposit assets must contain USDT/Ethereum and at most one verified conversion pair.");
   }
   return assets;
 }

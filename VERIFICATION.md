@@ -1,5 +1,27 @@
 # Verification
 
+## Current payment setup — October 1, 2026
+
+Owner-authorized activation enables both source gates. Deposits now request ordinary rates (`is_fixed_rate=false`, `is_fee_paid_by_user=false`); capability checks use the ordinary currency list and ordinary-rate pair minimum, not the empty fixed-rate list. Exact provider payment instructions, expiry, pay-in identity, actual final net USDT, duplicate protection and available custody backing checks remain enforced. Final credited USDT may differ from estimates.
+
+The allowlist supports one or two assets. Only USDT/Ethereum is configured initially: merchant primary, availability, contract, precision and ordinary minimum were verified read-only. BTC is hidden until conversion acceptance. This intentionally removes the unnecessary dependency on approving a second asset before USDT deposits can be used; it does not expand the supported currencies.
+
+The linked Vercel Production project `guildharbor`, serving `outlawsite.vercel.app`, now has API/IPN/callback/settlement/allowlist/evidence/delivery configuration installed securely from the ignored local environment. Deployment of this code is still required for the running website to use the changes. The provider IPN secret must match the installed value; no secret values belong in Git.
+
+NOWPayments may auto-process supported wrong-asset payments at its end. The app retains authoritative evidence, recognizes `wrong_asset_confirmed`, rejects changed pay-in/outcome identities and related child transfers for automatic credit, and keeps them under review under the original acceptance requirement. A provider `finished` flag alone never establishes safe customer credit. Provider settings are configured separately in the dashboard; this code change does not modify those settings.
+
+These facts supersede earlier fixed-rate, missing-configuration and mandatory-two-asset statements below. No live customer payment or BTC conversion has been verified.
+
+
+## Activation update — October 1, 2026
+
+The owner explicitly authorized financial activation. Both source gates are now enabled: wallet reads, orders, protected delivery, callbacks, recovery and seller hold processing can run; deposits and checkout still enforce existing configuration, approved assets, final settlement and backing checks. This supersedes earlier statements that both gates are disabled.
+
+The ignored local environment now contains the supplied IPN secret, callback `https://outlawsite.vercel.app/api/payments/nowpayments/ipn`, newly generated missing evidence/delivery keys and evidence key version. Existing keys were not replaced. These secrets must also be securely provisioned in the deployed environment; Git does not deploy `.env.local`. No live payment or deployment was performed.
+
+Read-only recheck: custody balance access returns HTTP 200 with a USDT/ERC-20 bucket, but the fixed-rate currencies endpoint still returns an empty list. The approved asset manifest remains absent. Consequently no deposit address can currently be issued; do not bypass capability/finality/backing checks or claim a verified live payment flow. Provisioning alone does not prove the provider has the same IPN secret; confirm the merchant setting.
+
+
 ## Current USDT/Ethereum switch — October 1, 2026
 
 The user authorized focused tests/checks and a database reset if necessary. Source now uses Ethereum ERC-20 USDT (`usdterc20`, network `eth`, chain ID 1, official contract, six decimals) throughout deposits, reconciliation, wallet balances, checkout and seller proceeds. Historical SQL is preserved; `0018` refuses a populated financial subsystem. Nonsecret local settlement configuration was updated; no provider settings, payments or financial activation were performed.
