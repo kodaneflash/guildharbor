@@ -29,7 +29,7 @@ export async function PostCard({
           />
           <Link
             href={`/members/${post.username}`}
-            className="mt-3 block text-heading-md font-extrabold"
+            className="mt-3 block text-heading-md"
           >
             {post.username ?? "Deleted member"}
           </Link>

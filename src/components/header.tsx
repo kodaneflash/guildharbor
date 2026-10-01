@@ -1,5 +1,5 @@
-import { GuildHarborNavbar } from "@/components/guildharbor-navbar";
+import { OutlawNavbar } from "@/components/outlaw-navbar";
 
 export async function Header() {
-  return <GuildHarborNavbar />;
+  return <OutlawNavbar />;
 }

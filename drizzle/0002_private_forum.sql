@@ -22,7 +22,7 @@ CREATE FUNCTION normalize_forum_username() RETURNS trigger LANGUAGE plpgsql AS $
 BEGIN
   IF NEW.username IS NOT NULL THEN
     NEW.username := lower(trim(NEW.username::text));
-    IF NEW.username::text !~ '^[a-z0-9_.]{3,30}$' OR NEW.username::text = ANY(ARRAY['admin','administrator','api','auth','guildharbor','help','moderator','root','security','staff','support','system','deleted','members','forums']) THEN
+    IF NEW.username::text !~ '^[a-z0-9_.]{3,30}$' OR NEW.username::text = ANY(ARRAY['admin','administrator','api','auth','outlaw','help','moderator','root','security','staff','support','system','deleted','members','forums']) THEN
       RAISE EXCEPTION 'Invalid or reserved username' USING ERRCODE = '23514';
     END IF;
   END IF;
@@ -61,7 +61,7 @@ ON CONFLICT DO NOTHING;
 -- Keep any real replies and references. Remove only records attributable to the old
 -- synthetic importer (reserved ID + .invalid email + no authentication account).
 CREATE TEMP TABLE imported_demo_users ON COMMIT DROP AS
-SELECT id FROM users u WHERE id LIKE 'demo-member-%' AND email::text LIKE '%@demo.guildharbor.invalid'
+SELECT id FROM users u WHERE id LIKE 'demo-member-%' AND email::text LIKE '%@demo.outlaw.invalid'
 AND NOT EXISTS (SELECT 1 FROM accounts a WHERE a.user_id = u.id);
 --> statement-breakpoint
 UPDATE posts SET deleted_at = now(), plain_text = '', content = '{"type":"doc","content":[]}' WHERE author_id IN (SELECT id FROM imported_demo_users);
@@ -70,9 +70,9 @@ UPDATE threads SET title = 'Community discussion', slug = 'community-discussion'
   deleted_at = CASE WHEN EXISTS (SELECT 1 FROM posts p WHERE p.thread_id = threads.id AND p.deleted_at IS NULL) THEN NULL ELSE now() END
 WHERE creator_id IN (SELECT id FROM imported_demo_users);
 --> statement-breakpoint
-DELETE FROM reputation_events WHERE reason = 'GuildHarbor demo reputation snapshot' AND giver_id IN (SELECT id FROM imported_demo_users) AND recipient_id IN (SELECT id FROM imported_demo_users);
+DELETE FROM reputation_events WHERE reason = 'Outlaw demo reputation snapshot' AND giver_id IN (SELECT id FROM imported_demo_users) AND recipient_id IN (SELECT id FROM imported_demo_users);
 --> statement-breakpoint
-DELETE FROM vouches WHERE comment = 'GuildHarbor demo vouch snapshot' AND author_id IN (SELECT id FROM imported_demo_users) AND recipient_id IN (SELECT id FROM imported_demo_users);
+DELETE FROM vouches WHERE comment = 'Outlaw demo vouch snapshot' AND author_id IN (SELECT id FROM imported_demo_users) AND recipient_id IN (SELECT id FROM imported_demo_users);
 --> statement-breakpoint
 UPDATE users SET name = 'Deleted member', username = NULL, display_username = NULL, image = NULL, account_status = 'deleted', membership_status = 'rejected' WHERE id IN (SELECT id FROM imported_demo_users);
 --> statement-breakpoint

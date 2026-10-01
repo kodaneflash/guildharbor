@@ -15,7 +15,7 @@ export function NewThreadForm({
   return (
     <form action={action} className="surface space-y-5 p-5 sm:p-7">
       <label className="block">
-        <span className="mb-2 block text-body-xs font-bold">Forum</span>
+        <span className="mb-2 block text-body-xs font-semibold">Forum</span>
         <select className="field" name="forum" defaultValue={selected}>
           {forums.map((forum) => (
             <option key={forum.slug} value={forum.slug}>
@@ -25,7 +25,7 @@ export function NewThreadForm({
         </select>
       </label>
       <label className="block">
-        <span className="mb-2 block text-body-xs font-bold">Title</span>
+        <span className="mb-2 block text-body-xs font-semibold">Title</span>
         <input
           className="field"
           name="title"

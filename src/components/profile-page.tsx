@@ -31,15 +31,13 @@ export function ProfilePage({ profile, viewerId }: { profile: ProfileSummary; vi
     <div className="site-container space-y-6 py-8 sm:py-10">
       <Breadcrumbs
         items={[
-          { label: "GuildHarbor", href: "/" },
-          { label: "Members", href: "/members" },
+          { label: "Outlaw", href: "/" },
           { label: profile.username },
         ]}
       />
 
-      <section className="relative min-h-[230px] overflow-hidden rounded-lg border border-border bg-panel">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(3,255,237,.18),transparent_28%),radial-gradient(circle_at_75%_0%,rgba(249,19,190,.14),transparent_30%),linear-gradient(125deg,#16272a,#201a27_55%,#211b17)]" />
-        <div className="absolute inset-0 opacity-30 [background-image:linear-gradient(rgba(255,255,255,.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.03)_1px,transparent_1px)] [background-size:32px_32px]" />
+      <section className="relative min-h-[230px] overflow-hidden rounded-[var(--radius-card)] border border-border bg-panel shadow-[var(--shadow-card)]">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgb(78_175_255_/_0.14),transparent_48%),linear-gradient(125deg,var(--panel),var(--panel-raised))]" />
         <div className="relative flex min-h-[230px] flex-col justify-end gap-5 p-5 sm:flex-row sm:items-end sm:justify-between sm:p-8">
           <div className="flex items-end gap-4 sm:gap-6">
             <UserAvatar
@@ -51,7 +49,7 @@ export function ProfilePage({ profile, viewerId }: { profile: ProfileSummary; vi
             />
             <div className="min-w-0 pb-2">
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="truncate text-display-sm font-black text-white sm:text-display-lg">
+                <h1 className="truncate text-display-sm text-text sm:text-display-lg">
                   {profile.displayName}
                 </h1>
                 <BadgeCheck
@@ -84,14 +82,14 @@ export function ProfilePage({ profile, viewerId }: { profile: ProfileSummary; vi
 
       <nav
         aria-label="Profile sections"
-        className="flex gap-1 overflow-x-auto rounded-md border border-border bg-panel p-1.5"
+        className="flex gap-1 overflow-x-auto rounded-2xl border border-border bg-panel p-1.5"
       >
         {profileTabs.map(([label, suffix]) => (
           <Link
             key={label}
             href={`/members/${profile.username}${suffix}`}
             className={cn(
-              "shrink-0 rounded-[5px] px-3 py-2 text-body-xs font-bold text-text-muted hover:bg-panel-raised hover:text-text",
+              "shrink-0 rounded-xl px-3 py-2 text-body-sm font-medium text-text-muted hover:bg-panel-raised hover:text-text",
               label === "Overview" && "bg-panel-strong text-text",
             )}
           >
@@ -125,7 +123,7 @@ function ProfileOverview({ profile }: { profile: ProfileSummary }) {
         <InfoRow icon={UserRound} label="UID" value={profile.uid} />
         <InfoRow icon={CalendarDays} label="Join date" value={profile.joined} />
         <div className="surface p-5">
-          <h2 className="text-body-sm font-extrabold text-text">Awards</h2>
+          <h2 className="text-body-sm font-semibold text-text">Awards</h2>
           {!profile.badges.length && (
             <p className="mt-3 text-body-xs text-text-muted">No awards yet.</p>
           )}
@@ -165,7 +163,7 @@ function ProfileOverview({ profile }: { profile: ProfileSummary }) {
           />
         </div>
         <section className="surface p-5 sm:p-6">
-          <h2 className="text-heading-md font-extrabold text-text">Groups</h2>
+          <h2 className="text-heading-md text-text">Groups</h2>
           {!profile.groups.length && (
             <p className="mt-3 text-body-sm text-text-muted">No groups.</p>
           )}
@@ -177,7 +175,7 @@ function ProfileOverview({ profile }: { profile: ProfileSummary }) {
               >
                 <span
                   className={cn(
-                    "text-body-xs font-black uppercase tracking-[0.1em]",
+                    "text-body-xs font-semibold uppercase tracking-[0.1em]",
                     `text-${group.tone}`,
                   )}
                 >
@@ -191,17 +189,17 @@ function ProfileOverview({ profile }: { profile: ProfileSummary }) {
           </div>
         </section>
         <section className="surface p-5 sm:p-6">
-          <h2 className="text-heading-md font-extrabold text-text">About</h2>
+          <h2 className="text-heading-md text-text">About</h2>
           <p className="mt-4 text-body-sm leading-7 text-text-secondary">
             {profile.about || "No biography provided."}
           </p>
         </section>
-        <section className="surface p-5 sm:p-6"><h2 className="text-heading-md font-extrabold text-text">Signature</h2><div className="prose-forum mt-4">{renderRichText(profile.signature)}</div></section>
+        <section className="surface p-5 sm:p-6"><h2 className="text-heading-md text-text">Signature</h2><div className="prose-forum mt-4">{renderRichText(profile.signature)}</div></section>
       </div>
 
       <aside className="space-y-4">
         <div className="surface flex items-center gap-3 p-5">
-          <span className="grid size-11 place-items-center rounded-full bg-trust/15 text-heading-md font-black text-trust">
+          <span className="grid size-11 place-items-center rounded-full bg-trust/15 text-heading-md text-trust">
             {profile.years}
           </span>
           <div>
@@ -220,7 +218,7 @@ function ProfileOverview({ profile }: { profile: ProfileSummary }) {
           </strong>
         </div>
         <section className="surface overflow-hidden">
-          <h2 className="border-b border-border px-5 py-4 text-heading-md font-extrabold text-text">
+          <h2 className="border-b border-border px-5 py-4 text-heading-md text-text">
             Latest activity
           </h2>
           {!profile.activity.length && (
@@ -266,7 +264,7 @@ function StatCard({
     >
       <strong
         className={cn(
-          "block text-heading-xl font-black",
+          "block text-heading-xl",
           accent ? "text-trust" : "text-text",
         )}
       >

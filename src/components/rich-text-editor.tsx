@@ -3,11 +3,12 @@
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Bold, Code2, Heading2, Italic, List, ListOrdered, Quote } from "lucide-react";
+import type { RichTextDocument } from "@/lib/rich-text";
 import { useState } from "react";
 
-const initialContent = { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "" }] }] };
+const emptyContent = { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "" }] }] };
 
-export function RichTextEditor({ name = "content" }: { name?: string }) {
+export function RichTextEditor({ name = "content", initialContent = emptyContent, label = "Post content" }: { name?: string; initialContent?: RichTextDocument; label?: string }) {
   const [serializedContent, setSerializedContent] = useState(() => JSON.stringify(initialContent));
   const editor = useEditor({
     extensions: [StarterKit],
@@ -16,7 +17,7 @@ export function RichTextEditor({ name = "content" }: { name?: string }) {
     onUpdate({ editor: currentEditor }) {
       setSerializedContent(JSON.stringify(currentEditor.getJSON()));
     },
-    editorProps: { attributes: { class: "min-h-56 px-4 py-4 text-body-sm leading-7 text-text-secondary outline-none" } },
+    editorProps: { attributes: { role: "textbox", "aria-label": label, "aria-multiline": "true", class: "min-h-56 px-4 py-4 text-body-sm leading-7 text-text-secondary outline-none" } },
   });
 
   if (!editor) return <div className="h-64 animate-pulse rounded-md bg-panel" />;
@@ -33,7 +34,7 @@ export function RichTextEditor({ name = "content" }: { name?: string }) {
   return (
     <div className="overflow-hidden rounded-md border border-border-strong bg-page focus-within:ring-2 focus-within:ring-focus">
       <div className="flex flex-wrap gap-1 border-b border-border bg-panel p-2" role="toolbar" aria-label="Post formatting">
-        {tools.map(({ label, icon: Icon, action, active }) => <button key={label} type="button" aria-label={label} aria-pressed={active} onClick={action} className={`grid size-9 place-items-center rounded-[5px] text-text-muted hover:bg-panel-raised hover:text-text ${active ? "bg-panel-strong text-cyan" : ""}`}><Icon className="size-4" /></button>)}
+        {tools.map(({ label, icon: Icon, action, active }) => <button key={label} type="button" aria-label={label} aria-pressed={active} onClick={action} className={`grid size-9 place-items-center rounded-lg text-text-muted hover:bg-panel-raised hover:text-text ${active ? "bg-panel-strong text-primary" : ""}`}><Icon className="size-4" /></button>)}
       </div>
       <EditorContent editor={editor} />
       <input type="hidden" name={name} value={serializedContent} readOnly />

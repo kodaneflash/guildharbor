@@ -45,7 +45,7 @@ export function UserAvatar({
     <span
       aria-hidden="true"
       className={cn(
-        "relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-gradient-to-br font-extrabold tracking-wide",
+        "relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-gradient-to-br font-semibold tracking-wide",
         toneFor(seed),
         sizeClass,
         className,

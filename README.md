@@ -1,8 +1,8 @@
-# GuildHarbor
+# Outlaw
 
 Implementation status and current acceptance evidence are maintained in [roadmap.md](roadmap.md). Historical analysis is not the implementation specification.
 
-Private community forum using Next.js 16 App Router, React 19, Better Auth, Drizzle and Neon PostgreSQL. Community content always requires authentication. Verified email and a unique username are required in both registration modes. Social users must finish username onboarding.
+Authenticated marketplace and community with a locally verified but disabled core financial flow, using Next.js 16 App Router, React 19, Better Auth, Drizzle and Neon PostgreSQL. Community content always requires authentication. Verified email and a unique username are required in both registration modes. Social users must finish username onboarding.
 
 ## Local development and production setup
 
@@ -10,11 +10,11 @@ Private community forum using Next.js 16 App Router, React 19, Better Auth, Driz
 2. Create a Neon PostgreSQL database. Set `DATABASE_URL` to its pooled connection URL and `DATABASE_URL_UNPOOLED` to its direct URL, with `sslmode=require`. Set `BETTER_AUTH_SECRET` to at least 32 cryptographically random characters. Set both `BETTER_AUTH_URL` and `NEXT_PUBLIC_APP_URL` to the exact application origin, including the scheme; use HTTPS in production.
 3. Configure Resend, verify your sending domain, and set `RESEND_API_KEY` and `AUTH_EMAIL_FROM`. Email verification and password reset require delivery. Missing email credentials do not grant access or print OTPs.
 4. Set `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` for shared rate limiting. Protected posting, search and upload operations fail closed without this service in production.
-5. Follow [the migration safety runbook](MIGRATIONS.md), including preservation and an isolated restore rehearsal before migration `0002` on any populated database. Then run `bun --env-file=.env.local run db:migrate`. The guarded runner validates the journal and preservation snapshot before applying historical and additive migrations. Do not substitute `drizzle-kit push`: custom provisioning and normalization triggers are part of the migration.
+5. Follow [the migration safety runbook](MIGRATIONS.md), including preservation and an isolated restore rehearsal before migration `0002` on any populated database. Review the pre-existing `0002` edit against applied hashes and rehearse pending financial migrations through `0018` first. Then run `bun --env-file=.env.local run db:migrate` only against the explicitly selected database. The guarded runner validates the journal and preservation snapshot before applying historical and additive migrations. Do not substitute `drizzle-kit push`: custom provisioning and normalization triggers are part of the migration.
 6. Run `bun run dev`. Register your administrator account, select a username and verify its email. Run `bun --env-file=.env.local run db:bootstrap your-verified-email@example.com`. This explicitly approves that account, assigns its administrator role, records the bootstrap, and creates a Community/General Discussion forum if absent. It creates no demo accounts or posts. Keep this operator command restricted to trusted administrators.
 7. In private mode, log in and open `/admin/registrations`. Approve or reject applications there. Every existing account starts pending after the migration, including old administrators, until bootstrapped or reviewed. Approval of an unverified or username-less account does not grant access until those requirements are completed.
 8. Replace `https://t.me/REPLACE_WITH_COMMUNITY_HANDLE` in `src/components/access-notice-client.tsx` with the real Telegram community URL, and remove “(placeholder link)” from its label.
-9. Run `bun run lint`, `bun run typecheck`, `bun run test`, and `bun run build`, then start the production server with `bun run start`.
+9. After user approval for verification, run `bun run lint`, `bun run typecheck`, `bun run test`, and `bun run build`, then start the production server with `bun run start`.
 
 ## Cloudflare visitor verification
 
@@ -35,7 +35,7 @@ References: [Cloudflare managed-challenge integration](https://developers.cloudf
 
 ## Private R2 avatar storage
 
-1. In **Cloudflare → R2 Object Storage**, enable R2 and create a bucket, for example `guildharbor-private`. Choose the region/jurisdiction appropriate for your deployment. Keep **Public Development URL disabled** and attach **no public custom domain**. If an older bucket was public, disable those public endpoints and purge their caches; application code cannot revoke a previously public URL by itself.
+1. In **Cloudflare → R2 Object Storage**, enable R2 and create a bucket, for example `outlaw-private`. Choose the region/jurisdiction appropriate for your deployment. Keep **Public Development URL disabled** and attach **no public custom domain**. If an older bucket was public, disable those public endpoints and purge their caches; application code cannot revoke a previously public URL by itself.
 2. Under **R2 → Manage R2 API tokens**, create an account API token with **Object Read & Write**, limited to **this bucket only**. Use an expiry/rotation policy appropriate to your operation. Save its Access Key ID and Secret Access Key. Use the account ID shown by R2; it is not the token ID. The app needs get, put and delete object operations. It does not need bucket-management privileges.
 3. Set these server-only environment variables:
 
@@ -43,7 +43,7 @@ References: [Cloudflare managed-challenge integration](https://developers.cloudf
    R2_ACCOUNT_ID=your-cloudflare-account-id
    R2_ACCESS_KEY_ID=your-scoped-access-key-id
    R2_SECRET_ACCESS_KEY=your-scoped-secret-access-key
-   R2_BUCKET=guildharbor-private
+   R2_BUCKET=outlaw-private
    ```
 
    The endpoint is constructed as `https://<account-id>.r2.cloudflarestorage.com`, with S3 region `auto`. These instructions target the standard R2 endpoint; jurisdiction-specific endpoints require matching storage configuration before use.
@@ -63,8 +63,8 @@ References: [Cloudflare managed-challenge integration](https://developers.cloudf
 
    Replace the example hostname, remove localhost for a production-only bucket, and add a staging origin only if used. CORS permits the signed browser PUT; it does not make objects public. The request CSP already allows R2 upload connections.
 5. Add an R2 lifecycle rule to delete objects under `quarantine/` after **one day**, so interrupted uploads expire even if application maintenance is unavailable. Do not expire the `avatars/` prefix. Authenticated maintenance also removes stale pending or rejected attachment objects and marks their records deleted; provider lifecycle remains the independent cleanup backstop. Replaced avatar objects become inaccessible through the application once unassigned and follow the operator's storage-retention policy.
-6. Restart/redeploy. Sign in as an approved member, go to **Settings → Profile**, and upload a JPEG, PNG or WebP up to 10 MB. The app signs a short-lived PUT, validates the actual size/checksum and decoded image, strips metadata by re-encoding to WebP, and atomically attaches it to the profile. Refresh and check the profile, header, directory and posts.
-7. Confirm that requesting `/api/files/<id>` as a guest or pending/rejected user returns 401/403, even if the URL was previously known. Files are streamed only after authorization with `private, no-store`; no signed download URL is exposed. Image optimization is disabled for authenticated images. Old externally hosted avatar references are cleared during migration and require re-upload.
+6. Restart/redeploy. Sign in as an eligible member, go to **Settings → Profile**, and upload a JPEG, PNG or WebP up to 10 MB. The app signs a short-lived PUT, validates the actual size/checksum and decoded image, strips metadata by re-encoding to WebP, and atomically attaches it to the profile. Refresh and check the profile, header and posts.
+7. Confirm that requesting `/api/files/<id>` as a guest, rejected user, or pending user in private mode returns 401/403, even if the URL was previously known. Files are streamed only after authorization with `private, no-store`; no signed download URL is exposed. Image optimization is disabled for authenticated images. Old externally hosted avatar references are cleared during migration and require re-upload.
 
 References: [R2 scoped tokens](https://developers.cloudflare.com/r2/api/tokens/), [R2 CORS](https://developers.cloudflare.com/r2/buckets/cors/).
 
@@ -80,15 +80,17 @@ References: [R2 scoped tokens](https://developers.cloudflare.com/r2/api/tokens/)
 
 The migration converts selling/buying/service threads to discussions and preserves their posts. It preserves vouch thread references before removing listing-specific columns/table/enum. Only synthetic imported accounts identified by **both** the old `demo-member-` ID prefix and reserved `.invalid` email, with no auth account, are anonymized. Their synthetic posts are cleared and hidden; real member replies are preserved. Old marketplace forum containers remain ordinary forum containers to preserve user content.
 
-Authorization is checked before rendering pages and before private queries/mutations. Membership requires a verified email, a valid username, active account status and eligibility under the centralized community access policy. Private subforum permissions are checked separately. Staff routes/actions require current staff permissions. The member directory exposes only eligible active accounts. Direct-message composition, delivery and controls use stored conversations with participant, block and resource checks; no optimistic demo sends remain. Administration includes community, marketplace, seller, support, agreement, user-moderation, audit and operational workflows.
+Authorization is checked before rendering pages and before private queries/mutations. Membership requires a verified email, a valid username, active account status and eligibility under the centralized community access policy. Private subforum permissions are checked separately. Staff routes/actions require current staff permissions. Member/profile queries filter eligibility; the former `/members` directory page is no longer present. Direct-message composition, delivery and controls use stored conversations with participant, block and resource checks; no optimistic demo sends remain. Administration includes community, marketplace, seller, support, agreement, user-moderation, audit and operational workflows.
 
-The signed-in home is marketplace discovery: real active categories, published listings, seller/contact/cart actions and viewer-authorized forum discovery. Cart and checkout are review-only in the pre-funding release. Payments, funded orders, custody, settlement, refunds, withdrawals and verified-purchase reviews are unavailable until the separately approved financial milestone.
+The signed-in home is marketplace discovery: search/product-kind filters, published listings, seller/contact/cart actions and viewer-authorized forum discovery. Cart and checkout are review-only in the pre-funding release. Direct deposits, exact USDT checkout, protected orders and internal seller settlement are connected but remain unavailable until merchant, operational and release acceptance passes. Refunds, external withdrawals, funded escrow and verified-purchase reviews are outside this core implementation. Financial implementation is authorized, but this is not authorization to activate it. See [financial architecture](docs/financial-architecture.md) and [operations](docs/financial-operations.md).
 
 No demo fallback is used when cloud services are absent. Guests redirect to sign-in with a validated local return destination. Unexpected failures use a generic error boundary. Historical migrations are retained because existing databases need their migration history.
 
 ## Verification
 
-See [roadmap.md](roadmap.md), especially section 17, for the current executed results and remaining release gates. Integration tests run migration SQL, Drizzle queries/services and Better Auth against disposable PGlite PostgreSQL; opt-in locking checks use real PostgreSQL. Email and external storage/verification services remain distinct from deployed-provider acceptance. Guest browser coverage has passed previously; the current authenticated production-browser run, accessibility review, notification delivery, rate limiting, private storage/scanner deployment and provider recovery exercise remain open.
+See [roadmap.md](roadmap.md) for current implementation and remaining release gates, and [VERIFICATION.md](VERIFICATION.md) for dated executed results, including October 1 isolated financial checks. Ask the user before running tests, lint, type-check or build. Integration tests run migration SQL, Drizzle queries/services and Better Auth against disposable PGlite PostgreSQL; opt-in locking checks use real PostgreSQL. Email and external storage/verification services remain distinct from deployed-provider acceptance. Guest browser coverage has passed previously; the current authenticated production-browser run, accessibility review, notification delivery, rate limiting, private storage/scanner deployment and provider recovery exercise remain open.
+
+Telegram linking uses the primary bot in `../guildharbor-telegram-bot`. Apply migration `0015_telegram_notifications`, then set `TELEGRAM_BOT_USERNAME`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BRIDGE_SECRET`, and `TELEGRAM_NOTIFICATIONS_ENABLED=true` on the website. Leave the switch false while migrations are pending. Set `WEBSITE_URL` and the same `TELEGRAM_BRIDGE_SECRET` on the bot. The existing authenticated maintenance endpoint dispatches private alerts; schedule it as for email delivery. A link from `/account` expires in ten minutes and is consumed once by a private `/start`. The verified Telegram connection and alert preferences are separate from the profile's public Telegram handle. Supported alerts are private messages, subscribed thread replies, pre-funding agreement updates, support updates, and announcements. Announcements default on in Telegram notification settings. A claimed Telegram send is never retried automatically because the Bot API provides no idempotency key; inspect `telegram_outbox` for `failed` or `claimed` rows when troubleshooting uncertain delivery.
 
 
 ## Registration mode (Vercel)
@@ -105,3 +107,9 @@ No additional migration or bulk update is needed for this mode switch. Existing 
 The administrator queue remains available in both modes. In public mode it lists accounts without explicit approval, including members who already qualify for access. Approve grants durable approval; reject denies membership in either mode. Rejected, restricted, suspended, banned and deleted accounts never gain access through the mode switch.
 
 Mode handling lives in `src/lib/community-access.ts`, backed by the pure membership policy. Session checks, transactional write checks and directory/profile filtering use it. Private subforum and staff permissions remain additional checks; public mode grants no staff privileges. Pages, metadata, queries, Server Actions, APIs, feeds and private files retain their authentication checks and private/no-store delivery.
+
+### Announcements
+
+Apply migration `0016_announcements` before running the updated website. Administrators with `admin.manage` publish and manage posts at `/admin/announcements`. Active posts appear on home (three, pinned first) and in the member-only `/announcements` archive. Removal is retained in the audit history and hides the post.
+
+Publishing atomically queues Telegram announcement alerts for eligible connected members whose Announcements preference is enabled (the default). Editing or pinning never resends alerts. The primary bot polls the existing website bridge every 30 seconds; each dispatch processes at most two jobs, so broadcasts drain progressively. Keep the same bot token on both projects. No new webhook or broadcaster is required. Alerts contain a title, up to 500 plain-text characters, and the full-post link. Disabled or incomplete transport configuration leaves queued alerts pending; inspect `telegram_outbox` for pending, failed, or claimed jobs. Disconnecting, disabling Announcements, or removing the post before delivery skips the queued alert. Already delivered Telegram messages are not edited or recalled.

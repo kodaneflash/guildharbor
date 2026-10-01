@@ -7,6 +7,7 @@ import { attachments, profiles } from "@/db/schema";
 import { memberApiAccess, privateHeaders } from "@/lib/api-access";
 import { createObjectStorageClient } from "@/lib/storage";
 import { env } from "@/lib/env";
+import { buyerFileEntitlement } from "@/domains/finance/orders";
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -37,7 +38,11 @@ export async function GET(
     .limit(1);
   if (!attachment) {
     const [file] = await createReadDatabase().select().from(attachments).where(and(eq(attachments.id, id.data), eq(attachments.state, "ready"), eq(attachments.scanStatus, "clean")));
-    if (!file?.resourceId || !(await authorizeFileResource(file.purpose, file.resourceId, false))) return new Response(null, { status: 404, headers: privateHeaders });
+    if (!file?.resourceId) return new Response(null, { status: 404, headers: privateHeaders });
+    const ownerOrResourceAccess = await authorizeFileResource(file.purpose, file.resourceId, false);
+    const purchasedFileAccess = !ownerOrResourceAccess && file.purpose === "listing_delivery"
+      && await buyerFileEntitlement(file.id, file.resourceId);
+    if (!ownerOrResourceAccess && !purchasedFileAccess) return new Response(null, { status: 404, headers: privateHeaders });
     const object = await createObjectStorageClient().send(new GetObjectCommand({ Bucket: env.R2_BUCKET, Key: file.storageKey }));
     if (!object.Body) return new Response(null, { status: 404, headers: privateHeaders });
     const preview = new URL(request.url).searchParams.get("preview") === "1" && ["text/plain", "image/webp"].includes(file.mediaType);

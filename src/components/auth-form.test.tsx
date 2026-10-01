@@ -6,10 +6,9 @@ import { SignInForm, SignUpForm } from "@/components/auth-form";
 afterEach(async () => { await act(async () => { cleanup(); }); });
 
 describe("social authentication controls", () => {
-  it("shows configured Google and Apple signup options", () => {
+  it("shows the configured Google signup option", () => {
     render(
       <SignUpForm
-        isAppleConfigured
         isConfigured
         isGoogleConfigured
       />,
@@ -19,14 +18,13 @@ describe("social authentication controls", () => {
       screen.getByRole("button", { name: "Continue with Google" }),
     ).toBeEnabled();
     expect(
-      screen.getByRole("button", { name: "Continue with Apple" }),
-    ).toBeEnabled();
+      screen.queryByRole("button", { name: "Continue with Apple" }),
+    ).not.toBeInTheDocument();
   });
 
   it("keeps unconfigured providers visible but unavailable", () => {
     render(
       <SignInForm
-        isAppleConfigured={false}
         isConfigured
         isGoogleConfigured={false}
       />,
@@ -36,7 +34,7 @@ describe("social authentication controls", () => {
       screen.getByRole("button", { name: "Sign in with Google" }),
     ).toBeDisabled();
     expect(
-      screen.getByRole("button", { name: "Sign in with Apple" }),
-    ).toBeDisabled();
+      screen.queryByRole("button", { name: "Sign in with Apple" }),
+    ).not.toBeInTheDocument();
   });
 });

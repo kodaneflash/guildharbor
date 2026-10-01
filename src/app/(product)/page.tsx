@@ -1,45 +1,47 @@
 import Link from "next/link";
-import { Store } from "lucide-react";
 import { Suspense } from "react";
+
 import { communityNotice } from "@/components/access-notice";
-import { CatalogRows } from "@/components/catalog-rows";
-import { TopSubforums } from "@/components/top-subforums";
-import { topSubforums } from "@/db/queries/community";
+import { HomeAnnouncements } from "@/components/home-announcements";
+import { RecentDrops } from "@/components/recent-drops";
 import { catalog, sellerWorkspaceHref } from "@/domains/commerce/commerce-service";
 import { requireMember } from "@/lib/session";
 
 async function HomeDiscovery() {
-  const [access, rows, forums, sellerHref] = await Promise.all([
-    requireMember(), catalog(), topSubforums(), sellerWorkspaceHref(),
+  const [access, rows, sellerHref] = await Promise.all([
+    requireMember(), catalog({ sort: "newest" }), sellerWorkspaceHref(),
   ]);
-  return (
-    <div className="grid min-w-0 items-start gap-6 lg:grid-cols-[12rem_minmax(0,1fr)_15rem]">
-        <aside className="surface min-w-0 space-y-5 p-5" aria-label="Marketplace discovery">
-          <form action="/marketplace" role="search" className="space-y-3"><label htmlFor="home-search" className="block font-bold">Find a listing</label><input id="home-search" className="field w-full min-w-0" type="search" name="q" placeholder="Search listings" maxLength={200} /><button className="button-primary w-full">Search</button></form>
-          <nav aria-label="Product kinds" className="space-y-3 text-body-sm text-category"><Link className="block" href="/marketplace?kind=digital">Digital goods</Link><Link className="block" href="/marketplace?kind=service">Services</Link></nav>
-        </aside>
-        <section className="min-w-0 space-y-4" aria-labelledby="latest-listings-heading"><div className="flex flex-wrap items-center justify-between gap-2"><h1 id="latest-listings-heading" className="text-heading-md font-bold">Latest listings</h1><Link className="text-body-sm text-category" href="/marketplace">View all</Link></div><CatalogRows rows={rows} viewerId={access.user.id} /></section>
-        <aside className="min-w-0 space-y-5" aria-label="Seller and forum discovery">
-          <section className="space-y-5 rounded-[2rem] border border-border-strong bg-page-deep p-5" aria-labelledby="start-selling-heading">
-            <div className="flex items-start gap-4">
-              <Store aria-hidden="true" className="mt-1 size-8 shrink-0 text-text-muted" strokeWidth={2.25} />
-              <div className="min-w-0 space-y-1">
-                <h2 id="start-selling-heading" className="text-heading-md font-bold">Start selling on GuildHarbor</h2>
-                <p className="text-body-sm leading-6 text-text-muted">Create a storefront, publish your listings, and connect with members.</p>
-              </div>
-            </div>
-            <Link className="button-secondary min-h-12 w-full rounded-xl" href={sellerHref}>Open a store</Link>
-          </section>
-          <TopSubforums forums={forums} />
-        </aside>
-      </div>
-  );
+  return <div className="space-y-8">
+    <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_19rem]">
+      <section className="surface space-y-4 p-5" aria-label="Marketplace discovery">
+        <form action="/marketplace" role="search" className="flex flex-wrap gap-3">
+          <label htmlFor="home-search" className="sr-only">Find a listing</label>
+          <input id="home-search" className="field min-w-0 flex-1 basis-48" type="search" name="q" placeholder="What do you need today?" maxLength={200} />
+          <button className="button-primary">Search</button>
+        </form>
+        <nav aria-label="Product kinds" className="flex flex-wrap gap-3">
+          <Link className="button-secondary" href="/marketplace?kind=digital">Digital goods</Link>
+          <Link className="button-secondary" href="/marketplace?kind=service">Services</Link>
+        </nav>
+      </section>
+      <aside className="surface flex flex-col justify-between gap-4 p-5" aria-label="Seller discovery">
+        <h2 className="text-heading-md">Start selling on Outlaw</h2>
+        <Link className="button-secondary min-h-12 w-full rounded-xl" href={sellerHref}>Open a store</Link>
+      </aside>
+    </div>
+    <section aria-labelledby="recent-drops-heading" className="space-y-4">
+      <h2 id="recent-drops-heading" className="text-heading-xl">Recent Drops</h2>
+      <RecentDrops rows={rows} viewerId={access.user.id} />
+    </section>
+  </div>;
 }
 
 export default async function HomePage() {
   const notice = await communityNotice();
   if (notice) return notice;
-  return <div className="discovery-container py-7 sm:py-10">
-    <Suspense fallback={<div role="status" className="surface p-6 text-text-muted">Loading listings and community discovery…</div>}><HomeDiscovery /></Suspense>
+  return <div className="site-container space-y-6 py-6 sm:py-8">
+    <header><h1 className="text-display-sm">Home</h1></header>
+    <Suspense fallback={<div role="status" className="surface p-6 text-text-muted">Loading announcements…</div>}><HomeAnnouncements /></Suspense>
+    <Suspense fallback={<div role="status" className="surface p-6 text-text-muted">Loading recent drops…</div>}><HomeDiscovery /></Suspense>
   </div>;
 }

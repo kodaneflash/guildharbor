@@ -4,6 +4,7 @@ import { LoaderCircle } from "lucide-react";
 import { useActionState, useState } from "react";
 
 import { UsernameField } from "@/components/username-field";
+import { TelegramBadge } from "@/components/telegram-badge";
 
 type Flow = "forgot" | "reset" | "username" | "two-factor";
 type State = { message: string; error: boolean };
@@ -25,7 +26,7 @@ const copy: Record<
   },
   username: {
     title: "Choose your username",
-    description: "A unique username is required before entering GuildHarbor.",
+    description: "A unique username is required before entering Outlaw.",
     submit: "Complete onboarding",
   },
   "two-factor": {
@@ -93,7 +94,8 @@ export function AccountFlowForm({
   return (
     <div className="site-container grid min-h-[calc(100vh-170px)] place-items-center py-10">
       <section className="surface w-full max-w-md p-5 sm:p-7">
-        <h1 className="text-heading-xl font-extrabold text-text">{details.title}</h1>
+        <TelegramBadge />
+        <h1 className="mt-4 text-heading-xl text-text">{details.title}</h1>
         <p className="mt-2 text-body-sm leading-6 text-text-muted">
           {details.description}
         </p>
@@ -165,7 +167,7 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-2 block text-body-xs font-bold text-text-secondary">
+      <span className="mb-2 block text-body-xs font-semibold text-text-secondary">
         {label}
       </span>
       <input {...props} name={name} required className="field" />

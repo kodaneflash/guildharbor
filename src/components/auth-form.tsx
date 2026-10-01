@@ -1,12 +1,13 @@
 "use client";
 
-import { Apple, LoaderCircle, LockKeyhole, Mail } from "lucide-react";
+import { LoaderCircle } from "lucide-react";
 import Link from "next/link";
 import { useActionState, useState } from "react";
 
 import { UsernameField } from "@/components/username-field";
 import { Turnstile } from "@/components/turnstile";
 import { PendingReview } from "@/components/access-notice-client";
+import { TelegramBadge } from "@/components/telegram-badge";
 import { authClient } from "@/lib/auth-client";
 
 type AuthState = { status: "idle" | "error" | "success"; message: string };
@@ -20,7 +21,6 @@ async function parseError(response: Response) {
 }
 
 type SocialProviderConfiguration = {
-  isAppleConfigured: boolean;
   isGoogleConfigured: boolean;
 };
 
@@ -33,7 +33,6 @@ type SignUpFormProps = SocialProviderConfiguration & {
 export function SignUpForm({
   requiresApproval = true,
   returnTo = "/",
-  isAppleConfigured,
   isConfigured,
   isGoogleConfigured,
 }: SignUpFormProps) {
@@ -72,7 +71,7 @@ export function SignUpForm({
   if (registered)
     return (
       <div className="site-container space-y-4 py-12">
-        {requiresApproval ? <PendingReview /> : <section className="surface mx-auto max-w-xl space-y-4 p-7"><h1 className="text-heading-xl font-extrabold">Verify your email</h1><p>Verify your email, then sign in to join the community.</p></section>}
+        {requiresApproval ? <PendingReview /> : <section className="surface mx-auto max-w-xl space-y-4 p-7"><h1 className="text-heading-xl">Verify your email</h1><p>Verify your email, then sign in to join the community.</p></section>}
         <p className="text-center">
           <Link
             className="button-primary"
@@ -91,14 +90,12 @@ export function SignUpForm({
       <form action={action} className="space-y-4">
         <UsernameField />
         <AuthField
-          icon={Mail}
           label="Email"
           name="email"
           type="email"
           autoComplete="email"
         />
         <AuthField
-          icon={LockKeyhole}
           label="Password"
           name="password"
           type="password"
@@ -122,7 +119,6 @@ export function SignUpForm({
         </button>
       </form>
       <SocialButtons
-        isAppleConfigured={isConfigured && isAppleConfigured}
         isGoogleConfigured={isConfigured && isGoogleConfigured}
         returnTo={returnTo}
         verb="Continue"
@@ -131,7 +127,7 @@ export function SignUpForm({
       />
       <p className="text-center text-body-xs text-text-muted">
         Already a member?{" "}
-        <Link href={`/sign-in?returnTo=${encodeURIComponent(returnTo)}`} className="font-bold text-category">
+        <Link href={`/sign-in?returnTo=${encodeURIComponent(returnTo)}`} className="font-semibold text-category">
           Sign in
         </Link>
       </p>
@@ -146,7 +142,6 @@ type SignInFormProps = SocialProviderConfiguration & {
 
 export function SignInForm({
   returnTo = "/",
-  isAppleConfigured,
   isConfigured,
   isGoogleConfigured,
 }: SignInFormProps) {
@@ -175,20 +170,15 @@ export function SignInForm({
 
   const [state, action, isPending] = useActionState(signIn, initialState);
   return (
-    <AuthCard
-      title="Welcome back"
-      description="Sign in with your verified email and password."
-    >
+    <AuthCard accessibleName="Sign in" frameless>
       <form action={action} className="space-y-4">
         <AuthField
-          icon={Mail}
           label="Email"
           name="email"
           type="email"
           autoComplete="email"
         />
         <AuthField
-          icon={LockKeyhole}
           label="Password"
           name="password"
           type="password"
@@ -197,7 +187,7 @@ export function SignInForm({
         <div className="flex justify-end">
           <Link
             href="/forgot-password"
-            className="text-body-xs font-bold text-category"
+            className="text-body-xs font-semibold text-category"
           >
             Forgot password?
           </Link>
@@ -213,14 +203,13 @@ export function SignInForm({
         </button>
       </form>
       <SocialButtons
-        isAppleConfigured={isConfigured && isAppleConfigured}
         isGoogleConfigured={isConfigured && isGoogleConfigured}
         verb="Sign in"
         returnTo={returnTo}
       />
       <p className="text-center text-body-xs text-text-muted">
         New here?{" "}
-        <Link href={`/sign-up?returnTo=${encodeURIComponent(returnTo)}`} className="font-bold text-category">
+        <Link href={`/sign-up?returnTo=${encodeURIComponent(returnTo)}`} className="font-semibold text-category">
           Create an account
         </Link>
       </p>
@@ -276,7 +265,6 @@ export function VerifyEmailForm({
     >
       <form action={action} className="space-y-4">
         <AuthField
-          icon={LockKeyhole}
           label="Verification code"
           name="otp"
           inputMode="numeric"
@@ -318,7 +306,6 @@ type SocialButtonsProps = SocialProviderConfiguration & {
 
 function SocialButtons({
   returnTo = "/",
-  isAppleConfigured,
   isGoogleConfigured,
   verb,
   token,
@@ -330,7 +317,7 @@ function SocialButtons({
   const blocked = Boolean(
     process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !(token ?? socialToken),
   );
-  async function startSocialSignIn(provider: "apple" | "google") {
+  async function startSocialSignIn(provider: "google") {
     const result = await authClient.signIn.social({
       provider,
       callbackURL: `/onboarding/username?returnTo=${encodeURIComponent(returnTo)}`,
@@ -360,37 +347,22 @@ function SocialButtons({
           {socialError}
         </p>
       )}
-      <div className="grid gap-2">
+      <div className="flex justify-center">
         <button
-          className="button-secondary w-full"
+          className="button-secondary min-w-52 px-6"
           disabled={!isGoogleConfigured || blocked}
           type="button"
           onClick={() => startSocialSignIn("google")}
         >
           <span
             aria-hidden="true"
-            className="grid size-4 place-items-center text-body-sm font-black"
+            className="grid size-4 place-items-center text-body-sm font-semibold"
           >
             G
           </span>
           {verb} with Google
         </button>
-        <button
-          className="button-secondary w-full"
-          disabled={!isAppleConfigured || blocked}
-          type="button"
-          onClick={() => startSocialSignIn("apple")}
-        >
-          <Apple className="size-4" />
-          {verb} with Apple
-        </button>
       </div>
-      {(!isGoogleConfigured || !isAppleConfigured) && (
-        <p className="text-center text-label-sm leading-5 text-text-muted">
-          Social sign-in becomes available after its provider credentials are
-          configured.
-        </p>
-      )}
     </>
   );
 }
@@ -399,16 +371,32 @@ function AuthCard({
   title,
   description,
   children,
+  frameless = false,
+  accessibleName,
 }: {
-  title: string;
-  description: string;
+  title?: string;
+  description?: string;
   children: React.ReactNode;
+  frameless?: boolean;
+  accessibleName?: string;
 }) {
   return (
     <div className="site-container grid min-h-screen place-items-center py-10">
-      <section className="surface w-full max-w-md p-5 sm:p-7">
-        <h1 className="text-heading-xl font-extrabold text-text">{title}</h1>
-        <p className="mt-2 text-body-sm leading-6 text-text-muted">{description}</p>
+      <section
+        aria-label={accessibleName}
+        className={`${frameless ? "" : "surface "}w-full max-w-md p-5 sm:p-7`}
+      >
+        <TelegramBadge />
+        {title && (
+          <h1 className="mt-4 text-heading-xl text-text">
+            {title}
+          </h1>
+        )}
+        {description && (
+          <p className="mt-2 text-body-sm leading-6 text-text-muted">
+            {description}
+          </p>
+        )}
         <div className="mt-7 space-y-5">{children}</div>
       </section>
     </div>
@@ -445,20 +433,20 @@ function Status({
 }
 
 type AuthFieldProps = React.InputHTMLAttributes<HTMLInputElement> & {
-  icon: typeof Mail;
   label: string;
   name: string;
 };
-function AuthField({ icon: Icon, label, name, ...props }: AuthFieldProps) {
+function AuthField({ label, name, placeholder = label, ...props }: AuthFieldProps) {
   return (
     <label className="block">
-      <span className="mb-2 block text-body-xs font-bold text-text-secondary">
-        {label}
-      </span>
-      <span className="relative block">
-        <Icon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-text-muted" />
-        <input {...props} name={name} required className="field pl-10" />
-      </span>
+      <span className="sr-only">{label}</span>
+      <input
+        {...props}
+        name={name}
+        placeholder={placeholder}
+        required
+        className="auth-field"
+      />
     </label>
   );
 }

@@ -5,7 +5,7 @@ export const reservedUsernames = new Set([
   "administrator",
   "api",
   "auth",
-  "guildharbor",
+  "outlaw",
   "help",
   "moderator",
   "root",

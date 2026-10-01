@@ -7,13 +7,13 @@ export function BrandMark({ compact = false, className }: { compact?: boolean; c
   return (
     <Link
       href="/"
-      aria-label="GuildHarbor home"
+      aria-label="Outlaw home"
       className={cn("inline-flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-focus", className)}
     >
-      <Image src="/guildharbor-mark.svg" alt="" width={76} height={46} priority />
+      <Image src="/outlaw-mark.svg" alt="" width={76} height={46} priority />
       {!compact && (
-        <span className="hidden text-body-sm font-bold tracking-[0.16em] text-text-secondary xl:block">
-          GUILDHARBOR
+        <span className="hidden text-body-sm font-semibold tracking-[0.16em] text-text-secondary xl:block">
+          OUTLAW
         </span>
       )}
     </Link>

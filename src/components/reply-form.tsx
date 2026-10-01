@@ -8,7 +8,7 @@ export function ReplyForm({ threadId }: { threadId: number }) {
   );
   return (
     <form action={action} className="surface space-y-4 p-6">
-      <label className="block font-bold">
+      <label className="block font-semibold">
         Reply
         <textarea
           name="content"

@@ -28,7 +28,7 @@ export async function proxy(request: NextRequest) {
   requestHeaders.set("x-product-path", safeReturnPath(request.nextUrl.pathname + request.nextUrl.search));
   requestHeaders.set("Content-Security-Policy", contentSecurityPolicy);
   const isDocument = !request.nextUrl.pathname.startsWith("/api/") && !request.nextUrl.pathname.startsWith("/feeds/");
-  const needsSignIn = isDocument && !authenticationPaths.has(request.nextUrl.pathname) && !getSessionCookie(request, { cookiePrefix: "guildharbor" });
+  const needsSignIn = isDocument && !authenticationPaths.has(request.nextUrl.pathname) && !getSessionCookie(request, { cookiePrefix: "outlaw" });
   const destination = new URL("/sign-in", request.url);
   destination.searchParams.set("returnTo", safeReturnPath(request.nextUrl.pathname + request.nextUrl.search));
   const response = needsSignIn ? NextResponse.redirect(destination) : NextResponse.next({ request: { headers: requestHeaders } });
@@ -44,6 +44,6 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!api/auth|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!api/auth|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|woff|woff2)$).*)",
   ],
 };

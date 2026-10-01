@@ -4,7 +4,6 @@ import type { Metadata } from "next";
 
 import { SignUpForm } from "@/components/auth-form";
 import {
-  isAppleConfigured,
   isDatabaseConfigured,
   isGoogleConfigured,
 } from "@/lib/env";
@@ -16,7 +15,6 @@ export default async function SignUpPage({ searchParams }: { searchParams: Promi
     <SignUpForm
       returnTo={returnTo}
       requiresApproval={communityAccessMode() === "private"}
-      isAppleConfigured={isAppleConfigured}
       isConfigured={isDatabaseConfigured}
       isGoogleConfigured={isGoogleConfigured}
     />

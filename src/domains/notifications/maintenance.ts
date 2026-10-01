@@ -4,12 +4,17 @@ import { Resend } from "resend";
 import { DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { createReadDatabase } from "@/db/client";
 import { withTransaction } from "@/db/transaction";
-import { attachments, categories, conversationMembers, deals, forumAccessRules, forums, notificationOutbox, notificationPreferences, notifications, roles, supportCases, threads, userGroups, userRoles, users } from "@/db/schema";
+import { announcements, attachments, categories, conversationMembers, deals, forumAccessRules, forums, notificationOutbox, notificationPreferences, notifications, roles, supportCases, telegramConnections, telegramOutbox, telegramPreferences, threads, userGroups, userRoles, users } from "@/db/schema";
+import { announcementTelegramText } from "@/domains/announcements/validation";
 import { hasCommunityAccess } from "@/lib/community-access";
 import { env, isR2Configured } from "@/lib/env";
 import { createObjectStorageClient } from "@/lib/storage";
 async function resourceEligible(userId: string, type: string | null, id: string | null) {
   if (!type || !id) return false; const db = createReadDatabase();
+  if (type === "announcement") {
+    const [row] = await db.select({ id: announcements.id }).from(announcements).where(and(eq(announcements.id, id), isNull(announcements.removedAt))).limit(1);
+    return Boolean(row);
+  }
   if (type === "conversation") { const rows = await db.select().from(conversationMembers).where(and(eq(conversationMembers.userId, userId), eq(conversationMembers.conversationId, id))); return rows.some(member => !member.mutedUntil || member.mutedUntil < new Date()); }
   if (type === "deal") { const [deal] = await db.select().from(deals).where(eq(deals.id, id)); return Boolean(deal && (deal.creatorId === userId || deal.respondentId === userId && deal.state !== "DRAFT")); }
   if (type === "support") {
@@ -32,6 +37,7 @@ async function resourceEligible(userId: string, type: string | null, id: string 
 }
 export async function runMaintenance() {
   const database = createReadDatabase(); let delivered = 0; let skipped = 0; let failed = 0; let cleaned = 0;
+  const telegram = await deliverTelegramNotifications();
   for (let index = 0; index < 20; index++) {
     const job = await withTransaction(async tx => {
       const [pending] = await tx.select().from(notificationOutbox).where(and(lt(notificationOutbox.availableAt, new Date()), or(eq(notificationOutbox.status, "pending"), and(eq(notificationOutbox.status, "processing"), lt(notificationOutbox.leaseUntil, new Date()))))).for("update", { skipLocked: true }).limit(1);
@@ -49,7 +55,7 @@ export async function runMaintenance() {
     }
     // Resend's idempotency key protects retries after a provider-success/database-failure window.
     try {
-      const result = await new Resend(env.RESEND_API_KEY).emails.send({ from: env.AUTH_EMAIL_FROM, to: row.user.email, subject: "You have a GuildHarbor update", text: `An account update is available. Sign in to view it: ${new URL("/notifications", env.NEXT_PUBLIC_APP_URL).href}\nManage optional email notifications in your account settings.` }, { idempotencyKey: `guildharbor-notice-${job.id}` });
+      const result = await new Resend(env.RESEND_API_KEY).emails.send({ from: env.AUTH_EMAIL_FROM, to: row.user.email, subject: "You have an Outlaw update", text: `An account update is available. Sign in to view it: ${new URL("/notifications", env.NEXT_PUBLIC_APP_URL).href}\nManage optional email notifications in your account settings.` }, { idempotencyKey: `outlaw-notice-${job.id}` });
       if (result.error) throw new Error("Email provider rejected delivery");
       await database.update(notificationOutbox).set({ status: "delivered", deliveredAt: new Date(), leaseUntil: null, lastError: null }).where(eq(notificationOutbox.id, job.id)); delivered++;
     } catch {
@@ -72,5 +78,59 @@ export async function runMaintenance() {
       if (removed) cleaned++;
     }
   }
-  return { delivered, skipped, failed, cleaned, storageCleanupConfigured: isR2Configured };
+  return { delivered, skipped, failed, cleaned, telegram, storageCleanupConfigured: isR2Configured };
+}
+
+export async function deliverTelegramNotifications() {
+  if (!env.TELEGRAM_NOTIFICATIONS_ENABLED || !env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_BRIDGE_SECRET) return { delivered: 0, skipped: 0, failed: 0 };
+  const database = createReadDatabase();
+  let delivered = 0, skipped = 0, failed = 0;
+  for (let index = 0; index < 2; index++) {
+    // Claim before contacting Telegram. Its Bot API has no idempotency key, so a
+    // timed-out send is never retried automatically and cannot produce a duplicate.
+    const job = await withTransaction(async tx => {
+      const [pending] = await tx.select().from(telegramOutbox).where(eq(telegramOutbox.status, "pending")).for("update", { skipLocked: true }).limit(1);
+      if (!pending) return null;
+      await tx.update(telegramOutbox).set({ status: "claimed" }).where(eq(telegramOutbox.notificationId, pending.notificationId));
+      return pending;
+    });
+    if (!job) break;
+    const [row] = await database.select({ notice: notifications, user: users }).from(notifications).innerJoin(users, eq(users.id, notifications.userId)).where(eq(notifications.id, job.notificationId));
+    if (!row || !hasCommunityAccess(row.user) || !(await resourceEligible(row.user.id, row.notice.resourceType, row.notice.resourceId))) {
+      await database.update(telegramOutbox).set({ status: "skipped" }).where(eq(telegramOutbox.notificationId, job.notificationId)); skipped++; continue;
+    }
+    if (!env.TELEGRAM_BOT_TOKEN || !env.NEXT_PUBLIC_APP_URL) {
+      await database.update(telegramOutbox).set({ status: "failed" }).where(eq(telegramOutbox.notificationId, job.notificationId)); failed++; continue;
+    }
+    const defaultText = `${row.notice.title}\n${new URL(row.notice.href, env.NEXT_PUBLIC_APP_URL).href}\nManage alerts in your account settings.`;
+    const status = await withTransaction(async tx => {
+      // Disconnect takes this same row lock, so no send can start after it commits.
+      const [connection] = await tx.select().from(telegramConnections).where(eq(telegramConnections.userId, row.user.id)).for("update").limit(1);
+      const [preference] = connection ? await tx.select().from(telegramPreferences).where(and(eq(telegramPreferences.userId, row.user.id), eq(telegramPreferences.eventType, row.notice.type))).limit(1) : [];
+      if (!connection || preference?.enabled === false) {
+        await tx.update(telegramOutbox).set({ status: "skipped" }).where(eq(telegramOutbox.notificationId, job.notificationId));
+        return "skipped" as const;
+      }
+      let text = defaultText;
+      if (row.notice.resourceType === "announcement") {
+        const [announcement] = await tx.select().from(announcements).where(and(eq(announcements.id, row.notice.resourceId ?? ""), isNull(announcements.removedAt))).for("share").limit(1);
+        if (!announcement) {
+          await tx.update(telegramOutbox).set({ status: "skipped" }).where(eq(telegramOutbox.notificationId, job.notificationId));
+          return "skipped" as const;
+        }
+        text = announcementTelegramText(announcement.title, announcement.content, new URL(row.notice.href, env.NEXT_PUBLIC_APP_URL).href);
+      }
+      let sent = false;
+      try {
+        const response = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chat_id: connection.privateChatId.toString(), text, disable_web_page_preview: true }), signal: AbortSignal.timeout(10000) });
+        sent = response.ok;
+      } catch {
+        // Telegram may have accepted a timed-out request. Never retry it.
+      }
+      await tx.update(telegramOutbox).set({ status: sent ? "delivered" : "failed" }).where(eq(telegramOutbox.notificationId, job.notificationId));
+      return sent ? "delivered" as const : "failed" as const;
+    });
+    if (status === "delivered") delivered++; else if (status === "skipped") skipped++; else failed++;
+  }
+  return { delivered, skipped, failed };
 }

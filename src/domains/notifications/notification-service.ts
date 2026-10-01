@@ -1,5 +1,5 @@
 import "server-only";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, ne } from "drizzle-orm";
 import { z } from "zod";
 import { createReadDatabase } from "@/db/client";
 import { withTransaction } from "@/db/transaction";
@@ -11,12 +11,13 @@ import { transactionActor } from "@/domains/authorization";
 export const notificationTypes = ["message.received", "thread.reply", "deal.updated", "support.updated"] as const;
 export async function visibleNotifications(page = 1) {
   const access = await requireMember(); const database = createReadDatabase();
-  const [rows, preferences] = await Promise.all([database.select().from(notifications).where(eq(notifications.userId, access.user.id)).orderBy(desc(notifications.id)).limit(51).offset((page - 1) * 50), database.select().from(notificationPreferences).where(eq(notificationPreferences.userId, access.user.id))]);
+  const [rows, preferences] = await Promise.all([database.select().from(notifications).where(and(eq(notifications.userId, access.user.id), ne(notifications.type, "announcement.published"))).orderBy(desc(notifications.id)).limit(51).offset((page - 1) * 50), database.select().from(notificationPreferences).where(eq(notificationPreferences.userId, access.user.id))]);
   const visible = [];
   for (const row of rows.slice(0, 50)) {
-    if (preferences.some(preference => preference.eventType === row.type && !preference.inApp)) continue;
+    if (row.resourceType !== "wallet" && preferences.some(preference => preference.eventType === row.type && !preference.inApp)) continue;
     let allowed = false;
-    if (row.resourceType === "conversation" && row.resourceId) {
+    if (row.resourceType === "wallet") allowed = row.resourceId === access.user.id;
+    else if (row.resourceType === "conversation" && row.resourceId) {
       const [member] = await database.select({ id: conversationMembers.userId }).from(conversationMembers).where(and(eq(conversationMembers.conversationId, row.resourceId), eq(conversationMembers.userId, access.user.id)));
       allowed = Boolean(member);
     } else if (row.resourceType === "deal" && row.resourceId) allowed = Boolean(await findDeal(row.resourceId));

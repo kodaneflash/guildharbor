@@ -20,7 +20,7 @@ export function ThreadRow({ thread }: { thread: ThreadListItem }) {
           <Link
             href={`/threads/${thread.id}/${thread.slug}`}
             className={cn(
-              "min-w-0 text-body-md font-bold leading-5 text-text decoration-category/60 underline-offset-4 group-hover:text-category group-hover:underline sm:text-body-md",
+              "min-w-0 text-body-md font-semibold leading-5 text-text decoration-category/60 underline-offset-4 group-hover:text-category group-hover:underline sm:text-body-md",
               thread.isUnread && "text-white",
             )}
           >

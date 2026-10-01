@@ -5,7 +5,7 @@ import { Redis } from "@upstash/redis";
 
 import { env } from "@/lib/env";
 
-export type RateLimitName = "auth" | "registration" | "otp" | "thread" | "reply" | "reputation" | "vouch" | "message" | "report" | "search" | "upload";
+export type RateLimitName = "auth" | "registration" | "otp" | "thread" | "reply" | "reputation" | "vouch" | "message" | "report" | "search" | "upload" | "deposit" | "depositRefresh" | "checkout" | "fulfillment";
 
 const limits: Record<RateLimitName, { count: number; window: `${number} ${"s" | "m" | "h" | "d"}` }> = {
   auth: { count: 5, window: "10 m" },
@@ -19,6 +19,10 @@ const limits: Record<RateLimitName, { count: number; window: `${number} ${"s" | 
   report: { count: 10, window: "1 d" },
   search: { count: 60, window: "1 m" },
   upload: { count: 20, window: "1 h" },
+  deposit: { count: 5, window: "10 m" },
+  depositRefresh: { count: 6, window: "1 m" },
+  checkout: { count: 10, window: "1 m" },
+  fulfillment: { count: 10, window: "1 m" },
 };
 
 const redis = env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN
@@ -35,7 +39,7 @@ export async function enforceRateLimit(name: RateLimitName, identifier: string) 
   const config = limits[name];
   let limiter = rateLimiters.get(name);
   if (!limiter) {
-    limiter = new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(config.count, config.window), prefix: `guildharbor:${name}` });
+    limiter = new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(config.count, config.window), prefix: `outlaw:${name}` });
     rateLimiters.set(name, limiter);
   }
   const result = await limiter.limit(identifier);

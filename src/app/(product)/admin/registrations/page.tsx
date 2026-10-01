@@ -23,7 +23,7 @@ export default async function RegistrationQueue() {
     .limit(100);
   return (
     <div className="site-container space-y-6 py-8">
-      <h1 className="text-display-sm font-extrabold">Registration queue</h1>
+      <h1 className="text-display-sm">Registration queue</h1>
       <p className="text-body-sm text-text-muted">
         Oldest applications first, up to 100 at a time. Approval also requires a
         verified email and username before access is granted.
@@ -36,7 +36,7 @@ export default async function RegistrationQueue() {
             className="flex flex-wrap items-center justify-between gap-4 p-5"
           >
             <div>
-              <h2 className="font-bold">
+              <h2 className="font-semibold">
                 {user.username ?? "Username not selected"}
               </h2>
               <p className="text-body-sm text-text-muted">

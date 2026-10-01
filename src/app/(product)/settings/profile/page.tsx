@@ -21,7 +21,7 @@ export default async function ProfileSettingsPage() {
       <div className="grid items-start gap-5 lg:grid-cols-[240px_minmax(0,1fr)]">
         <SettingsNav active="profile" />
         <div className="max-w-3xl space-y-5">
-          <h1 className="text-display-sm font-extrabold">Profile settings</h1>
+          <h1 className="text-display-sm">Profile settings</h1>
           <p className="text-text-muted">
             Your profile is visible to community members.
           </p>

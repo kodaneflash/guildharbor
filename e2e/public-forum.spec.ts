@@ -26,7 +26,7 @@ test("feed, files, uploads and thread-view endpoints reject unauthenticated requ
   for (const path of ["/api/uploads/sign", "/api/uploads/complete", "/api/thread-views"]) expect((await request.post(path, { data: {} })).status()).toBe(401);
 });
 test("HTML, RSC and forged cookie requests reveal no private metadata", async ({ request }) => {
-  const variants: Record<string, string>[] = [{}, { RSC: "1" }, { Cookie: "__Secure-guildharbor.session_token=forged" }];
+  const variants: Record<string, string>[] = [{}, { RSC: "1" }, { Cookie: "__Secure-outlaw.session_token=forged" }];
   for (const headers of variants) {
     const response = await request.get("/threads/1/private-title", { headers });
     const body = await response.text();

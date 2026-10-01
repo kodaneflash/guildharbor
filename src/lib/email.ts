@@ -11,10 +11,10 @@ type OtpEmail = {
 };
 
 const subjects: Record<OtpEmail["type"], string> = {
-  "sign-in": "Your GuildHarbor sign-in code",
-  "email-verification": "Verify your GuildHarbor email",
-  "forget-password": "Reset your GuildHarbor password",
-  "change-email": "Confirm your GuildHarbor email change",
+  "sign-in": "Your Outlaw sign-in code",
+  "email-verification": "Verify your Outlaw email",
+  "forget-password": "Reset your Outlaw password",
+  "change-email": "Confirm your Outlaw email change",
 };
 
 export async function sendOtpEmail({ email, otp, type }: OtpEmail) {
@@ -31,7 +31,7 @@ export async function sendOtpEmail({ email, otp, type }: OtpEmail) {
     from: env.AUTH_EMAIL_FROM,
     to: email,
     subject: subjects[type],
-    text: `Your GuildHarbor verification code is ${otp}. It expires in five minutes. If you did not request this, you can ignore this email.`,
+    text: `Your Outlaw verification code is ${otp}. It expires in five minutes. If you did not request this, you can ignore this email.`,
   });
 
   if (error) throw new Error("Unable to send authentication email");

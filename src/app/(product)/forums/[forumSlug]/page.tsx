@@ -27,7 +27,7 @@ export default async function ForumPage({
     <div className="site-container space-y-6 py-8">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-display-sm font-extrabold">{forum.title}</h1>
+          <h1 className="text-display-sm">{forum.title}</h1>
           <p className="mt-2 text-body-sm text-text-muted">{forum.description}</p>
         </div>
         <Link

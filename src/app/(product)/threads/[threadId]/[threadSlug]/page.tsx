@@ -32,7 +32,7 @@ export default async function ThreadPage({
   const [subscription] = await createReadDatabase().select().from(threadSubscriptions).where(and(eq(threadSubscriptions.threadId, id), eq(threadSubscriptions.userId, access.user.id)));
   return (
     <div className="site-container space-y-6 py-8">
-      <h1 className="text-display-sm font-extrabold">{thread.title}</h1>
+      <h1 className="text-display-sm">{thread.title}</h1>
       <p className="text-body-xs text-text-muted">{thread.replyCount} replies</p>
       <ForumControls threadId={id} subscribed={Boolean(subscription)} moderator={access.permissions.some(permission => ["admin.manage", "forum.moderate"].includes(permission))} locked={thread.status !== "open"} pinned={thread.isPinned} />
       {posts.map((post) => (

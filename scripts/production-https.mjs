@@ -22,7 +22,7 @@ async function availablePort() {
   return port;
 }
 
-const directory = await mkdtemp(join(tmpdir(), "guildharbor-https-"));
+const directory = await mkdtemp(join(tmpdir(), "outlaw-https-"));
 const applicationPort = await availablePort();
 const proxyPort = await availablePort();
 const secureOrigin = `https://localhost:${proxyPort}`;

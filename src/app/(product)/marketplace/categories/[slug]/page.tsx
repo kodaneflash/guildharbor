@@ -9,5 +9,5 @@ export default async function CategoryPage({ params, searchParams }: { params: P
   if (!selected) notFound();
   const page = pageNumber((await searchParams).page);
   const rows = await catalog({ categoryId: selected.id, page });
-  return <div className="site-container space-y-5 py-8"><Link href="/marketplace">Marketplace</Link><h1 className="text-display-sm font-bold">{selected.name}</h1><CatalogCards rows={rows} /><nav aria-label="Pagination" className="flex gap-4">{page > 1 && <Link href={`?page=${page - 1}`}>Previous</Link>}{rows.length === 24 && <Link href={`?page=${page + 1}`}>Next</Link>}</nav></div>;
+  return <div className="site-container space-y-5 py-8"><Link href="/marketplace">Marketplace</Link><h1 className="text-display-sm">{selected.name}</h1><CatalogCards rows={rows} /><nav aria-label="Pagination" className="flex gap-4">{page > 1 && <Link href={`?page=${page - 1}`}>Previous</Link>}{rows.length === 24 && <Link href={`?page=${page + 1}`}>Next</Link>}</nav></div>;
 }

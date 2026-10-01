@@ -7,7 +7,7 @@ export default async function ForumsPage() {
   const categories = await forumCategories();
   return (
     <div className="site-container space-y-7 py-8">
-      <h1 className="text-display-sm font-extrabold">Browse forums</h1>
+      <h1 className="text-display-sm">Browse forums</h1>
       {categories.map((category) => (
         <CategorySection key={category.slug} category={category} />
       ))}

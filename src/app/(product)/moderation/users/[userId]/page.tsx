@@ -25,7 +25,7 @@ export default async function ReviewUser({
   return (
     <div className="site-container py-8">
       <section className="surface space-y-4 p-6">
-        <h1 className="text-heading-xl font-bold">Member review</h1>
+        <h1 className="text-heading-xl">Member review</h1>
         <p>{user.username}</p>
         <p>Account: {user.status}</p>
         <p>Registration: {user.membership}</p>

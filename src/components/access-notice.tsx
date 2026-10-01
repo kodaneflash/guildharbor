@@ -17,7 +17,7 @@ export async function communityNotice() {
     <div className="site-container py-12">
       {user.membershipStatus === "rejected" ? (
         <section className="surface mx-auto max-w-xl p-7">
-          <h1 className="text-heading-xl font-extrabold">Registration not approved</h1>
+          <h1 className="text-heading-xl">Registration not approved</h1>
           <p className="mt-3 text-text-muted">
             Your registration request was declined.
           </p><Link href="/support" className="button-secondary mt-4">Request account support</Link>
@@ -30,7 +30,7 @@ export async function communityNotice() {
         </section>
       ) : (
         <div className="space-y-4">
-          {requiresApproval && user.emailVerified && user.username ? <PendingReview /> : <section className="surface mx-auto max-w-xl p-7"><h1 className="text-heading-xl font-extrabold">Complete your registration</h1><p>Verify your email and choose a unique username to continue.</p></section>}
+          {requiresApproval && user.emailVerified && user.username ? <PendingReview /> : <section className="surface mx-auto max-w-xl p-7"><h1 className="text-heading-xl">Complete your registration</h1><p>Verify your email and choose a unique username to continue.</p></section>}
           {!user.emailVerified && (
             <p className="text-center">
               <Link
@@ -66,7 +66,7 @@ export async function staffNotice(permission: string) {
   return (
     <div className="site-container py-12">
       <section className="surface p-7">
-        <h1 className="text-heading-xl font-bold">Staff access required</h1>
+        <h1 className="text-heading-xl">Staff access required</h1>
         <p className="mt-3 text-text-muted">
           You do not have permission to view this page.
         </p>

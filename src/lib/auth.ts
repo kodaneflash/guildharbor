@@ -45,7 +45,7 @@ function createAuth() {
   };
 
   return betterAuth({
-    appName: "GuildHarbor",
+    appName: "Outlaw",
     baseURL: env.BETTER_AUTH_URL || env.NEXT_PUBLIC_APP_URL,
     secret: env.BETTER_AUTH_SECRET,
     database: drizzleAdapter(database, {
@@ -139,7 +139,7 @@ function createAuth() {
     socialProviders:
       Object.keys(socialProviders).length > 0 ? socialProviders : undefined,
     advanced: {
-      cookiePrefix: "guildharbor",
+      cookiePrefix: "outlaw",
       useSecureCookies: env.NODE_ENV === "production",
     },
     rateLimit: {
@@ -172,7 +172,7 @@ function createAuth() {
         rateLimit: { window: 60, max: 3 },
       }),
       twoFactor({
-        issuer: "GuildHarbor",
+        issuer: "Outlaw",
         backupCodeOptions: {
           amount: 10,
           length: 12,

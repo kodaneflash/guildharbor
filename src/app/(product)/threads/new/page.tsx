@@ -14,7 +14,7 @@ export default async function NewThreadPage({
   }));
   return (
     <div className="site-container max-w-5xl space-y-6 py-8">
-      <h1 className="text-display-sm font-extrabold">Create a thread</h1>
+      <h1 className="text-display-sm">Create a thread</h1>
       {forums.length ? (
         <NewThreadForm forums={forums} selected={(await searchParams).forum} />
       ) : (

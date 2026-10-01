@@ -25,7 +25,7 @@ export default async function SecurityPage() {
       <div className="grid items-start gap-5 lg:grid-cols-[240px_minmax(0,1fr)]">
         <SettingsNav active="security" />
         <div className="max-w-3xl space-y-5">
-          <h1 className="text-display-sm font-extrabold">Security</h1>
+          <h1 className="text-display-sm">Security</h1>
           <EmailChange email={access.user.email} />
           <SessionControls />
           <SecurityForm

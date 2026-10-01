@@ -18,7 +18,7 @@ export default async function SearchPage({
   const matches = await communityThreads({ query: q, page });
   return (
     <div className="site-container space-y-6 py-8">
-      <h1 className="text-display-sm font-extrabold">Search GuildHarbor</h1>
+      <h1 className="text-display-sm">Search Outlaw</h1>
       <p className="text-text-muted">Search thread titles and posts.</p>
       <form className="surface flex gap-3 p-4" role="search">
         <input

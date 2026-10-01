@@ -33,7 +33,7 @@ test("member discovery, cart persistence, seller routing and responsive accessib
     await page.getByLabel("Password", { exact: true }).fill(password);
     await page.getByRole("button", { name: "Sign in", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Latest listings" })).toBeVisible({ timeout: 30000 });
-    await expect(page.getByText("Discover GuildHarbor", { exact: true })).toHaveCount(0);
+    await expect(page.getByText("Discover Outlaw", { exact: true })).toHaveCount(0);
     await expect(page.getByText("All listings and filters", { exact: true })).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Open a store", exact: true })).toHaveAttribute("href", "/seller/onboarding");
     const row = page.getByRole("article").filter({ has: page.getByRole("heading", { name: title }) });

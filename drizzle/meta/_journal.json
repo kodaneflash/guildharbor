@@ -64,6 +64,76 @@
       "when": 1789889253897,
       "tag": "0008_deal_request_version",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1789971653603,
+      "tag": "0009_usdc_ledger",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1789972156661,
+      "tag": "0010_financial_evidence",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1789974007267,
+      "tag": "0011_complex_reptil",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1789977114902,
+      "tag": "0012_absurd_iceman",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1789977875510,
+      "tag": "0013_young_living_tribunal",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1790020748294,
+      "tag": "0014_flawless_gabe_jones",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1790746053035,
+      "tag": "0015_telegram_notifications",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1790750018301,
+      "tag": "0016_announcements",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1790800000000,
+      "tag": "0017_marketplace_completion",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1790840970083,
+      "tag": "0018_usdt_ethereum",
+      "breakpoints": true
     }
   ]
 }

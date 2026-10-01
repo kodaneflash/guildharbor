@@ -47,12 +47,11 @@ export function UsernameField() {
         : "Checking availability…";
   return (
     <label className="block">
-      <span className="mb-2 block text-body-xs font-bold text-text-secondary">
-        Username
-      </span>
+      <span className="sr-only">Username</span>
       <input
-        className="field"
+        className="auth-field"
         aria-label="Username"
+        placeholder="Username"
         name="username"
         value={value}
         onChange={(event) => setValue(event.target.value)}

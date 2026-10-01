@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { fkGrotesk } from "@/lib/fonts";
+import { openRunde } from "@/lib/fonts";
 
 import "./globals.css";
 
@@ -9,8 +9,8 @@ export const metadata: Metadata = {
     process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
   ),
   title: {
-    default: "GuildHarbor — Private Community",
-    template: "%s · GuildHarbor",
+    default: "Outlaw — Private Community",
+    template: "%s · Outlaw",
   },
   description: "A members-only community forum.",
   robots: { index: false, follow: false },
@@ -26,9 +26,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${fkGrotesk.variable} h-full antialiased`}
+      className={`${openRunde.variable} h-full antialiased`}
     >
-      <body className="min-h-full">
+      <body className="min-h-screen">
         <a
           href="#main-content"
           className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:bg-text focus:px-4 focus:py-2 focus:text-page-deep"

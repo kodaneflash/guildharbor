@@ -13,6 +13,7 @@ import {
   primaryKey,
   text,
   timestamp,
+  unique,
   uniqueIndex,
   uuid,
   type AnyPgColumn,
@@ -1010,6 +1011,29 @@ export const notificationOutbox = pgTable("notification_outbox", {
   status: text("status").default("pending").notNull(), attempts: integer("attempts").default(0).notNull(), availableAt: timestamp("available_at", { withTimezone: true }).defaultNow().notNull(),
   leaseUntil: timestamp("lease_until", { withTimezone: true }), lastError: text("last_error"), deliveredAt: timestamp("delivered_at", { withTimezone: true }), createdAt,
 }, table => [check("outbox_status_valid", sql`${table.status} in ('pending','processing','delivered','skipped','failed')`), index("outbox_pending_idx").on(table.status, table.availableAt)]);
+
+export const telegramConnections = pgTable("telegram_connections", {
+  userId: text("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+  telegramUserId: bigint("telegram_user_id", { mode: "bigint" }).notNull().unique(),
+  privateChatId: bigint("private_chat_id", { mode: "bigint" }).notNull(),
+  createdAt,
+});
+export const telegramLinkTokens = pgTable("telegram_link_tokens", {
+  tokenHash: text("token_hash").primaryKey(),
+  userId: text("user_id").notNull().unique().references(() => users.id, { onDelete: "cascade" }),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  createdAt,
+});
+export const telegramPreferences = pgTable("telegram_preferences", {
+  userId: text("user_id").notNull().references(() => telegramConnections.userId, { onDelete: "cascade" }),
+  eventType: text("event_type").notNull(),
+  enabled: boolean("enabled").notNull().default(true),
+}, table => [primaryKey({ columns: [table.userId, table.eventType] })]);
+export const telegramOutbox = pgTable("telegram_outbox", {
+  notificationId: bigint("notification_id", { mode: "number" }).primaryKey().references(() => notifications.id, { onDelete: "cascade" }),
+  status: text("status").notNull().default("pending"),
+  createdAt,
+}, table => [check("telegram_outbox_status_valid", sql`${table.status} in ('pending','claimed','delivered','skipped','failed')`)]);
 export const deals = pgTable("deals", {
   id: uuid("id").defaultRandom().primaryKey(), creatorId: text("creator_id").notNull().references(() => users.id, { onDelete: "restrict" }), respondentId: text("respondent_id").references(() => users.id, { onDelete: "restrict" }),
   payerId: text("payer_id").references(() => users.id, { onDelete: "restrict" }), name: text("name").notNull(), amountCents: integer("amount_cents").notNull(), terms: text("terms").notNull(),
@@ -1024,3 +1048,191 @@ export const dealAcceptances = pgTable("deal_acceptances", { dealId: uuid("deal_
 export const dealEvents = pgTable("deal_events", { id: uuid("id").defaultRandom().primaryKey(), dealId: uuid("deal_id").notNull().references(() => deals.id, { onDelete: "restrict" }), actorId: text("actor_id").notNull().references(() => users.id), operationId: uuid("operation_id").notNull(), requestVersion: integer("request_version"), action: text("action").notNull(), resultingState: text("resulting_state").notNull(), createdAt }, table => [uniqueIndex("deal_event_operation_unique").on(table.actorId, table.operationId)]);
 export const supportCases = pgTable("support_cases", { id: uuid("id").defaultRandom().primaryKey(), creatorId: text("creator_id").notNull().references(() => users.id), dealId: uuid("deal_id").references(() => deals.id), conversationId: uuid("conversation_id").references(() => conversations.id), subject: text("subject").notNull(), status: text("status").default("open").notNull(), assignedToId: text("assigned_to_id").references(() => users.id), createdAt, updatedAt }, table => [check("support_state_valid", sql`${table.status} in ('open','in_review','resolved','closed')`)]);
 export const supportEvents = pgTable("support_events", { id: uuid("id").defaultRandom().primaryKey(), caseId: uuid("case_id").notNull().references(() => supportCases.id), actorId: text("actor_id").notNull().references(() => users.id), kind: text("kind").notNull(), body: text("body").notNull(), createdAt });
+
+// A journal is a balanced two-account transfer. Compound business operations
+// insert multiple journals in one transaction with distinct business references.
+export const financialAccounts = pgTable("financial_accounts", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  ownerId: text("owner_id").references(() => users.id, { onDelete: "restrict" }),
+  kind: text("kind").notNull(),
+  currency: text("currency").default("USDT").notNull(),
+  createdAt,
+}, table => [
+  check("financial_account_currency", sql`${table.currency} = 'USDT'`),
+  check("financial_account_owner", sql`(${table.ownerId} is not null and ${table.kind} in ('available','pending','reserved')) or (${table.ownerId} is null and ${table.kind} in ('backing','platform_revenue'))`),
+  uniqueIndex("financial_member_account_unique").on(table.ownerId, table.kind),
+  uniqueIndex("financial_backing_account_unique").on(table.kind).where(sql`${table.ownerId} is null`),
+]);
+
+export const financialJournals = pgTable("financial_journals", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  reference: text("reference").notNull().unique(),
+  debitAccountId: uuid("debit_account_id").notNull().references(() => financialAccounts.id, { onDelete: "restrict" }),
+  creditAccountId: uuid("credit_account_id").notNull().references(() => financialAccounts.id, { onDelete: "restrict" }),
+  amountAtoms: bigint("amount_atoms", { mode: "bigint" }).notNull(),
+  kind: text("kind").notNull(),
+  actorId: text("actor_id").notNull().references(() => users.id, { onDelete: "restrict" }),
+  evidenceReference: text("evidence_reference").notNull(),
+  reversalOfId: uuid("reversal_of_id").references((): AnyPgColumn => financialJournals.id, { onDelete: "restrict" }),
+  createdAt,
+}, table => [
+  check("financial_journal_positive", sql`${table.amountAtoms} > 0`),
+  check("financial_journal_distinct", sql`${table.debitAccountId} <> ${table.creditAccountId}`),
+  check("financial_journal_reference", sql`length(${table.reference}) between 1 and 200 and length(${table.evidenceReference}) between 1 and 200`),
+  check("financial_journal_kind", sql`${table.kind} in ('deposit','purchase','reservation','escrow','settlement','refund','adjustment','withdrawal','withdrawal_fee')`),
+  index("financial_journal_debit_idx").on(table.debitAccountId, table.createdAt),
+  index("financial_journal_credit_idx").on(table.creditAccountId, table.createdAt),
+]);
+
+export const financialCommands = pgTable("financial_commands", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  ownerId: text("owner_id").notNull().references(() => users.id, { onDelete: "restrict" }),
+  requestId: uuid("request_id").notNull(),
+  kind: text("kind").notNull(),
+  requestDigest: text("request_digest").notNull(),
+  nextCheckAt: timestamp("next_check_at", { withTimezone: true }).defaultNow().notNull(),
+  state: text("state").default("prepared").notNull(),
+  providerId: text("provider_id"),
+  createdAt,
+}, table => [
+  uniqueIndex("financial_command_request_unique").on(table.ownerId, table.requestId),
+  unique("financial_commands_provider_id_unique").on(table.kind, table.providerId),
+  check("financial_command_kind", sql`${table.kind} in ('deposit','withdrawal')`),
+  check("financial_command_digest", sql`${table.requestDigest} ~ '^[0-9a-f]{64}$'`),
+  check("financial_command_state", sql`${table.state} in ('prepared','outcome_unknown','identified')`),
+  check("financial_command_provider_state", sql`(${table.state} = 'identified') = (${table.providerId} is not null)`),
+]);
+
+export const financialEvidence = pgTable("financial_evidence", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  commandId: uuid("command_id").references(() => financialCommands.id, { onDelete: "restrict" }),
+  source: text("source").notNull(),
+  digest: text("digest").notNull(),
+  encryptedBody: text("encrypted_body").notNull(),
+  keyVersion: text("key_version").notNull(),
+  createdAt,
+}, table => [
+  uniqueIndex("financial_evidence_unique").on(table.source, table.digest),
+  check("financial_evidence_source", sql`${table.source} in ('ipn','lookup','command')`),
+  check("financial_evidence_digest", sql`${table.digest} ~ '^[0-9a-f]{64}$'`),
+  index("financial_evidence_command_idx").on(table.commandId, table.createdAt),
+]);
+
+// Database-generated transition history, including uncertain external outcomes.
+export const financialCommandEvents = pgTable("financial_command_events", {
+  id: bigint("id", { mode: "bigint" }).generatedAlwaysAsIdentity().primaryKey(),
+  commandId: uuid("command_id").notNull().references(() => financialCommands.id, { onDelete: "restrict" }),
+  state: text("state").notNull(),
+  providerId: text("provider_id"),
+  createdAt,
+}, table => [
+  check("financial_command_event_state", sql`${table.state} in ('prepared','outcome_unknown','identified')`),
+  index("financial_command_event_idx").on(table.commandId, table.id),
+]);
+
+export const financialDepositRequests = pgTable("financial_deposit_requests", {
+  commandId: uuid("command_id").primaryKey().references(() => financialCommands.id, { onDelete: "restrict" }),
+  priceUsd: text("price_usd").notNull(),
+  currency: text("currency").notNull(),
+  asset: text("asset").default("USDT").notNull(),
+  network: text("network").default("eth").notNull(),
+  decimals: integer("decimals").default(6).notNull(),
+  tokenContract: text("token_contract"),
+  memoRequired: boolean("memo_required").default(false).notNull(),
+  settlementCurrency: text("settlement_currency"),
+  minimumAtoms: bigint("minimum_atoms", { mode: "bigint" }).notNull(),
+  createdAt,
+}, table => [check("financial_deposit_request_minimum", sql`${table.minimumAtoms} > 0`)]);
+
+export const financialDeposits = pgTable("financial_deposits", {
+  commandId: uuid("command_id").primaryKey().references(() => financialCommands.id, { onDelete: "restrict" }),
+  settlementCurrency: text("settlement_currency"),
+  asset: text("asset").default("USDT").notNull(), network: text("network").default("eth").notNull(),
+  decimals: integer("decimals").default(6).notNull(),
+  currency: text("currency").notNull(), address: text("address").notNull(), memo: text("memo"),
+  requestedAtoms: bigint("requested_atoms", { mode: "bigint" }).notNull(),
+  minimumAtoms: bigint("minimum_atoms", { mode: "bigint" }),
+  estimatedNetAtoms: bigint("estimated_net_atoms", { mode: "bigint" }),
+  priceUsd: text("price_usd"),
+  settledAtoms: bigint("settled_atoms", { mode: "bigint" }),
+  payinHash: text("payin_hash").unique(),
+  nextCheckAt: timestamp("next_check_at", { withTimezone: true }).defaultNow().notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  detectedAt: timestamp("detected_at", { withTimezone: true }),
+  status: text("status").default("awaiting_payment").notNull(),
+  creditedJournalId: uuid("credited_journal_id").unique().references(() => financialJournals.id, { onDelete: "restrict" }),
+  createdAt, updatedAt,
+}, table => [check("financial_deposit_positive", sql`${table.requestedAtoms} > 0`)]);
+
+export const financialCheckouts = pgTable("financial_checkouts", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  buyerId: text("buyer_id").notNull().references(() => users.id, { onDelete: "restrict" }),
+  requestId: uuid("request_id").notNull(), requestDigest: text("request_digest").notNull(),
+  fromCart: boolean("from_cart").notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(), createdAt,
+}, table => [uniqueIndex("financial_checkout_request_unique").on(table.buyerId, table.requestId)]);
+
+export const financialIpnReceipts = pgTable("financial_ipn_receipts", {
+  evidenceId: uuid("evidence_id").primaryKey().references(() => financialEvidence.id, { onDelete: "restrict" }),
+  nextCheckAt: timestamp("next_check_at", { withTimezone: true }).defaultNow().notNull(),
+  processedAt: timestamp("processed_at", { withTimezone: true }),
+});
+
+export const financialPurchaseQuotes = pgTable("financial_purchase_quotes", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  checkoutId: uuid("checkout_id").references(() => financialCheckouts.id, { onDelete: "restrict" }),
+  buyerId: text("buyer_id").notNull().references(() => users.id, { onDelete: "restrict" }),
+  sellerId: text("seller_id").notNull().references(() => users.id, { onDelete: "restrict" }),
+  revisionId: uuid("revision_id").notNull().references(() => listingRevisions.id, { onDelete: "restrict" }),
+  amountAtoms: bigint("amount_atoms", { mode: "bigint" }).notNull(),
+  policyVersion: text("policy_version").notNull(),
+  evidenceReference: text("evidence_reference").notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(), createdAt,
+}, table => [check("financial_quote_positive", sql`${table.amountAtoms} > 0`), check("financial_quote_parties", sql`${table.buyerId} <> ${table.sellerId}`),
+  uniqueIndex("financial_checkout_revision_unique").on(table.checkoutId, table.revisionId)]);
+
+export const financialOrders = pgTable("financial_orders", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  quoteId: uuid("quote_id").notNull().unique().references(() => financialPurchaseQuotes.id, { onDelete: "restrict" }),
+  paymentJournalId: uuid("payment_journal_id").notNull().unique().references(() => financialJournals.id, { onDelete: "restrict" }),
+  status: text("status").notNull(),
+  holdUntil: timestamp("hold_until", { withTimezone: true }).notNull(),
+  settledJournalId: uuid("settled_journal_id").unique().references(() => financialJournals.id, { onDelete: "restrict" }),
+  refundJournalId: uuid("refund_journal_id").unique().references(() => financialJournals.id, { onDelete: "restrict" }),
+  createdAt, updatedAt,
+}, table => [check("financial_order_state", sql`${table.status} in ('paid','completed','disputed','refunded')`)]);
+
+export const financialFulfillments = pgTable("financial_fulfillments", {
+  orderId: uuid("order_id").primaryKey().references(() => financialOrders.id, { onDelete: "restrict" }),
+  sellerId: text("seller_id").notNull().references(() => users.id, { onDelete: "restrict" }),
+  protectedText: text("protected_text").notNull(), contentDigest: text("content_digest").notNull(), createdAt,
+});
+
+export const financialActivity = pgTable("financial_activity", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  memberId: text("member_id").notNull().references(() => users.id, { onDelete: "restrict" }),
+  actorId: text("actor_id").notNull().references(() => users.id, { onDelete: "restrict" }),
+  eventKey: text("event_key").notNull().unique(),
+  kind: text("kind").notNull(), resourceId: text("resource_id").notNull(),
+  message: text("message").notNull(), createdAt,
+}, table => [index("financial_activity_member_idx").on(table.memberId, table.createdAt)]);
+
+export const financialFreezes = pgTable("financial_freezes", {
+  memberId: text("member_id").primaryKey().references(() => users.id, { onDelete: "restrict" }),
+  reason: text("reason").notNull(), createdAt,
+});
+
+export const announcements = pgTable("announcements", {
+  id: uuid("id").primaryKey(),
+  title: text("title").notNull(),
+  content: jsonb("content").$type<import("@/lib/rich-text").RichTextDocument>().notNull(),
+  authorId: text("author_id").notNull().references(() => users.id, { onDelete: "restrict" }),
+  pinned: boolean("pinned").default(false).notNull(),
+  important: boolean("important").default(false).notNull(),
+  publishedAt: timestamp("published_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt,
+  removedAt: timestamp("removed_at", { withTimezone: true }),
+}, table => [
+  check("announcement_title_length", sql`char_length(btrim(${table.title})) between 1 and 160`),
+  index("announcement_discovery_idx").on(table.pinned, table.publishedAt, table.id).where(sql`${table.removedAt} is null`),
+]);

@@ -33,7 +33,7 @@ export function ForumRow({ forum }: { forum: ForumSummary }) {
       <div className="min-w-0">
         <Link
           href={`/forums/${forum.slug}`}
-          className="text-body-md font-bold text-text hover:text-category hover:underline hover:underline-offset-4"
+          className="text-body-md font-semibold text-text hover:text-category hover:underline hover:underline-offset-4"
         >
           {forum.name}
         </Link>

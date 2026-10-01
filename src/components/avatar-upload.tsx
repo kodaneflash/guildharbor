@@ -72,7 +72,7 @@ export function AvatarUpload({
   }
   return (
     <section className="surface space-y-4 p-6">
-      <h2 className="text-heading-lg font-bold">Avatar</h2>
+      <h2 className="text-heading-lg">Avatar</h2>
       <UserAvatar seed={username} src={avatarUrl} size="lg" />
       <label className="block text-body-sm">
         Choose an image

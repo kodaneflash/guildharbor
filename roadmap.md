@@ -1,68 +1,21 @@
-# GuildHarbor marketplace blueprint and implementation roadmap
+# Outlaw marketplace roadmap
 
-**Current status (2026-09-20):** Sections 1–16 are the product blueprint and include historical baseline observations from commit `085b85c`; do not treat those observations or the original phase descriptions as the current implementation inventory. Section 17 records code added in the working tree through phases 0–5 and parts of phase 6. Section 18 records the signed-in member-home implementation and its acceptance criteria. The working tree contains extensive uncommitted application changes. The configured database already contains the complete migration journal through `0008`; a private full-database backup was restored locally with matching public-table checksums. Deployed storage, scanning, email and rate-limit integrations and the remaining authenticated browser/concurrency acceptance are still open, so Phase 6 is not complete. Read the execution record and inspect current code before deciding what remains.
+**Source-audited 2026-09-29.** This file separates product requirements from current implementation. Sections 2–16 are the retained blueprint/acceptance requirements, not a claim that every listed feature or route exists. Sections 17–20 are the current source inventory and remaining work. Superseded chronological progress notes have been consolidated.
 
-## 1. Verified baseline and architectural direction
+The working tree contains extensive uncommitted application, branding, financial and documentation changes. Preserve them. All financial execution is hard-disabled; credentials do not enable it. The core deposit, exact USDC wallet, checkout, protected delivery and seller hold settlement paths are connected and locally verified. Production activation remains blocked by merchant settlement/backing acceptance, configuration and deployment gates. Refunds and enhancements remain deferred. Section 20 supersedes earlier deposit-only implementation notes and historical future feature lists for the current scope.
 
-### Current repository
+## 1. Current repository and reading order
 
-Verified September 20, 2026:
+- Stack: Next.js 16.2.12 App Router, React 19.2.4, TypeScript, Tailwind 4, Better Auth, Drizzle/Neon, Bun, Vitest/PGlite and Playwright. Cache Components is disabled.
+- Product: authenticated marketplace/community; current brand is Outlaw. Guest product pages redirect to sign-in. Public registration is the default, not public browsing.
+- Implemented pre-funding code includes forum/accounts, seller/catalog/cart review, messages/files, notifications, unfunded agreements, support and administration. Deployed-service acceptance remains open.
+- Finance: exact USDC ledger, disabled Direct Payments with a two-asset approval boundary, executable but gated checkout, protected buyer/manual seller delivery and scheduled internal seller hold settlement. Funded escrow and external withdrawals remain unavailable.
+- Actual deal URLs are under `/escrow`, not `/deals`. Primary navigation is Marketplace (`/`), Forum, Escrow. Current source has seller/member detail routes but no `/sellers` or `/members` directory page; `/rules` and `/escrow/how-it-works` pages are also absent.
+- Financial migrations 0009–0017 exist locally. No live financial migration is recorded. The last historical database inspection reported through 0008; current deployed state was not queried.
+- An existing edit to migration 0002 must be compared with applied hashes before any migration. Do not claim historical SQL is unchanged or bypass the migration guard.
+- Current flow verification is pending. Earlier test passes are historical, not certification of today's tree. Ask permission before the deferred tests/lint/type-check/build.
 
-| Area | Current finding |
-|---|---|
-| Stack | Next.js 16.2.12, React 19.2.4, TypeScript, Tailwind CSS 4, Better Auth, Drizzle, Neon, Tiptap, S3-compatible storage, Upstash, Resend, Vitest, Playwright. Bun is the package manager. |
-| Git and planning | Clean `main`; latest commit enables reversible open-registration eligibility. No existing roadmap or partial blueprint found. |
-| Forum | Persistent reads, thread creation, and replies exist. Search includes thread titles and post text; queries already support pagination. Complete and verify remaining controls rather than replacing these capabilities. |
-| Identity | Canonical Better Auth users, profiles, roles, username provisioning, and centralized membership eligibility exist. |
-| Registration | `COMMUNITY_ACCESS_MODE=public` admits verified, active users with valid usernames without administrator approval. It does **not** expose community content to guests. Omission currently defaults to private mode. |
-| Messages | Database-backed conversations and authorized reads exist; composition and persistent conversation creation remain missing. |
-| Notifications | User-specific reads exist, but delivery, read-state actions, preferences, and complete resource routing remain unfinished. |
-| Administration | Registration review performs audited writes. Most other staff screens list records without complete operational workflows. |
-| Uploads | Working architecture is avatar-specific. Existing attachment tables do not establish marketplace or message-file delivery. |
-| Maintenance | Authenticated endpoint explicitly returns `501`; no jobs are configured. |
-| Marketplace | Current schema has no marketplace listings. Migration `0002` removes the historical listing table. |
-| Privacy | Dynamic rendering and private/no-store responses are configured. Cache Components is disabled. |
-| Historical reports | `REPO_ANALYSIS.md` predates substantial improvements and must not guide implementation without checking current code. |
-
-Evidence:
-
-- [Membership eligibility](/Users/apex/Desktop/guildharbor/src/lib/community-access.ts), [session and permission boundaries](/Users/apex/Desktop/guildharbor/src/lib/session.ts).
-- [Persistent forum queries](/Users/apex/Desktop/guildharbor/src/db/queries/community.ts), [thread service](/Users/apex/Desktop/guildharbor/src/domains/thread/thread-service.ts).
-- [Message queries](/Users/apex/Desktop/guildharbor/src/db/queries/message-queries.ts), [message workspace](/Users/apex/Desktop/guildharbor/src/components/messages-workspace.tsx).
-- [Notifications](/Users/apex/Desktop/guildharbor/src/app/notifications/page.tsx), [staff screens](/Users/apex/Desktop/guildharbor/src/components/staff-page.tsx).
-- [Current schema](/Users/apex/Desktop/guildharbor/src/db/schema/index.ts), [migration 0002](/Users/apex/Desktop/guildharbor/drizzle/0002_private_forum.sql).
-- [File authorization](/Users/apex/Desktop/guildharbor/src/app/api/files/[id]/route.ts), [profile projection](/Users/apex/Desktop/guildharbor/src/db/resolve-profile.ts).
-
-### Verification
-
-Executed during this recovery:
-
-- `bun run lint`: passed.
-- `bun run typecheck`: passed.
-- `bun run test`: **70 tests across 10 files passed**.
-- `bun run build`: passed; application routes render dynamically.
-- `git diff --check`: passed; checkout remains clean.
-
-Historical evidence, **not rerun here**:
-
-- Dependency installation succeeded in the previous session.
-- Production HTTPS browser checks passed; `VERIFICATION.md` records 12 cases in each community-access mode.
-- Previous development-mode cache-header/mobile failures did not reproduce in production.
-- Limited guest/auth accessibility scans previously passed.
-
-Only `.env.example` was found. Relevant database, authentication, storage, and email credentials were absent from the inspected process environment. The previously reported empty Neon database was not reverified. Live database access is unnecessary to finish this blueprint.
-
-### Strategy B
-
-Preserve the existing stack, canonical identities, profiles, forum records, URLs, authentication, and reusable infrastructure.
-
-Selectively modernize:
-
-- Consolidate resource authorization and transactional business operations.
-- Move database orchestration out of presentation components as each affected workflow is completed.
-- Extend the existing domain-service pattern for commerce, messaging, delivery, deals, and support.
-- Keep forum categories and threads separate from marketplace taxonomy and listings.
-- Do not introduce another auth system, forum, ORM, payment substitute, or broad framework rewrite.
+Read [current repository inventory](REPO_ANALYSIS.md), [financial architecture](docs/financial-architecture.md), [financial operations](docs/financial-operations.md), [verification status](VERIFICATION.md), and [migration safety](MIGRATIONS.md).
 
 ## 2. Access policy and information architecture
 
@@ -101,16 +54,16 @@ All product routes below require eligible membership; owner, participant, and st
 | Communication | Preserve `/messages`, `/messages/[conversationId]`, `/notifications` |
 | Settings | Preserve `/settings/profile`, `/settings/security`; add `/settings/notifications` |
 | Seller workspace | `/seller/onboarding`, `/seller`, `/seller/storefront`, `/seller/listings`, `/seller/listings/new`, `/seller/listings/[listingId]/edit`, `/seller/orders` |
-| Optional deals | `/deals`, `/deals/new`, `/deals/[dealId]`, `/deals/archive`, `/deals/how-it-works` |
+| Optional deals | Existing: `/escrow`, `/escrow/new`, `/escrow/[dealId]`, `/escrow/archive`; standalone walkthrough remains absent |
 | Support | `/support`, `/support/cases/[caseId]` |
 | Policies/information | `/help`, `/rules`, `/privacy`, `/terms`; all gated |
 | Administration | Preserve current routes; add seller, listing, marketplace-category, support, deal-oversight, and audit screens under `/admin` |
 | Paid milestone | `/account/payments`, `/account/refunds`, `/account/wallet`, `/seller/earnings`, `/seller/withdrawals` |
 | Later enhancements | Affiliate, advertising, promotion, tier, and advanced analytics workspaces |
 
-Primary navigation: **Marketplace, Forum, Sellers, Deals**. Account navigation contains messages, notifications, favorites, orders, settings, and role-appropriate seller/staff entry points.
+Current primary navigation: **Marketplace, Forum, Escrow**. Seller discovery/detail requirements below do not imply a directory route currently exists. Account navigation contains messages, notifications, favorites, orders, settings, and role-appropriate seller/staff entry points.
 
-Reuse GuildHarbor’s semantic tokens and branding. Use a compact desktop header, accessible mobile navigation, responsive catalog cards, mobile filter sheets, and focused transaction detail pages. Do not reproduce STYX branding, advertising rails, product copy, or unsupported trust claims.
+Reuse Outlaw’s semantic tokens and branding. Use a compact desktop header, accessible mobile navigation, responsive catalog cards, mobile filter sheets, and focused transaction detail pages. Do not reproduce STYX branding, advertising rails, product copy, or unsupported trust claims.
 
 Build essential responsiveness and WCAG 2.2 AA into every phase; later visual refinement is additional polish.
 
@@ -118,9 +71,9 @@ Build essential responsiveness and WCAG 2.2 AA into every phase; later visual re
 
 The eight attached images were available for inspection. The additional five-stage walkthrough images were not attached here; their workflow is taken from the user’s written handoff.
 
-**MVP** means pre-funding release. **Paid** requires the separately approved financial milestone.
+**MVP** means pre-funding release. **Paid** requires the financial milestone's implementation and acceptance gates; implementation authorization does not authorize activation.
 
-| Reference and evidence | GuildHarbor approach and domain | Phase | Acceptance |
+| Reference and evidence | Outlaw approach and domain | Phase | Acceptance |
 |---|---|---|---|
 | Image 1: search, categories, filters, sorting, listing summaries, prices, availability, seller links | Catalog/filter components at `/marketplace`; separate commerce taxonomy, listing, and seller models | MVP | Published eligible listings are searchable and filterable; empty taxonomy works; all discovery requires authentication |
 | Image 1: favorites, messaging, purchase icons | Persistent favorites, seller conversation action, explicit payment-unavailable purchase treatment | MVP / Paid | Favorites survive reload; messages reach the intended seller; no apparent completed purchase before funding exists |
@@ -154,7 +107,7 @@ Continue the existing `src/domains` pattern:
 - **Deals:** agreement versions, transition rules, confirmations.
 - **Support/moderation:** cases, assignment, evidence access, decisions.
 - **Notifications/audit:** transactional events, outbox delivery, read state.
-- **Payments:** deferred provider boundary and financial accounting.
+- **Payments:** disabled financial domain; current coverage and gaps are in section 20.
 
 Server Actions remain thin: validate input, obtain the actor server-side, invoke a service, and return a minimal result. Route Handlers serve uploads/files and machine integrations. Do not add a parallel REST API for every operation.
 
@@ -175,7 +128,7 @@ Use server-only queries and services. Recheck current restrictions and resource 
 | Deals | Canonical participants and conversations | Deals, terms versions, acceptances, events, completion confirmations |
 | Support | Existing moderation records where appropriate | Cases, participants, assigned staff, case events, evidence references |
 | Audit | Existing moderation actions | Append-only domain audit events with actor, resource, action, reason, version and correlation ID |
-| Financial, later | None of the noncash credit ledger | Provider events, payment attempts, balanced financial journals, transfers, refunds, reconciliation, withdrawal records |
+| Financial | Separate from noncash community credits | Journals/commands/evidence/deposit/order foundations exist; funded escrow, payout and refund workflows remain absent |
 
 Keep schema exports compatible while splitting the large schema module by domain as additions justify it.
 
@@ -184,7 +137,7 @@ Keep schema exports compatible while splitting the large schema module by domain
 - Preserve user IDs and existing account relationships.
 - Use foreign keys, unique constraints, valid-state checks, positive amounts, and stable pagination indexes.
 - Represent USD prices as integer cents using exact database/application arithmetic; serialize large integers safely.
-- Store cryptocurrency amounts later in native atomic units with explicit asset and network identifiers.
+- Financial code stores native USDC micro-units; retain explicit asset/network identity and never reinterpret USD cents as USDC.
 - Never infer transaction success from a listing status, community reputation, vouch, or noncash credit.
 - Use immutable snapshots for accepted terms and purchased content. Listing edits cannot alter existing agreements.
 - Check optimistic versions or lock relevant rows during transitions. Store state change and audit/outbox records in one transaction.
@@ -202,7 +155,7 @@ Separate:
 - Seller policy status.
 - Future verified transaction statistics.
 
-Current profile projections include Telegram handles, credits, and aggregate community counts. Remove private fields from shared projections; existing contact details default to private unless explicitly opted into visibility. Activity and counts must respect the viewer’s forum permissions.
+Profile projections must preserve the implemented contact/presence privacy choices and viewer-filtered activity. Community credits and feedback are not financial balances or verified sales.
 
 Support access is case-scoped and audited. Ordinary support staff must not obtain unrestricted message or financial authority through a generic administrator shortcut.
 
@@ -326,17 +279,17 @@ AWAITING_PAYMENT → PAYMENT_PENDING → PAID
   → IN_FULFILLMENT → DELIVERED → COMPLETED
 ```
 
-Payment, fulfillment and settlement statuses remain distinct. Payment failure, expiry, refund, and support paths retain their evidence. Standard purchase settlement timing and refund policy are paid-release decisions; do not silently apply escrow rules to every order.
+Payment, fulfillment and settlement statuses remain distinct. Payment failure, expiry, refund, and support paths retain their evidence. Standard purchase policy is immediate internal seller-pending credit with a 24-hour withdrawal hold, not escrow. Refund implementation is deferred.
 
 MVP order pages show truthful empty/unavailable states. Do not fabricate orders or transaction history to populate the UI.
 
 ## 7. Crypto-only architecture and financial enablement gates
 
-USD is the display/accounting currency. Cryptocurrency is the only payment rail.
+USD is the catalog price/reference currency; **USDC is the wallet accounting unit**. Native USDC on Base is the selected initial payment asset, subject to merchant verification.
 
-Do not implement cards, wallet custody, deposit allocation, chain monitoring, fake funding, credits-to-cash conversion, fund reservation, settlement, refunds, or withdrawals during phases 0–6.
+Financial implementation has been authorized, superseding the original deferral. Keep execution disabled until acceptance. Current scope is the core deposit → USDC balance → purchase → protected delivery → internal seller proceeds flow; refunds and unrelated enhancements are deferred. Cards, fake funding and community-credit conversion are not part of this implementation.
 
-Document a future server-only payment-provider boundary covering:
+The selected server-only Direct Payment boundary and remaining responsibilities cover:
 
 - Quotes and funding instructions.
 - Payment/deposit status lookup.
@@ -348,7 +301,7 @@ Do not implement a success-returning mock adapter in production.
 
 | Financial capability | Evidence required before enabling |
 |---|---|
-| Funding initiation | Approved provider/custody model, jurisdiction/country policy, supported networks, quote/expiry rules and tested provider integration |
+| Funding initiation | Approved provider/custody model, supported networks, quote/expiry rules and tested provider integration |
 | Balance credit or paid status | Authenticated deduplicated event, authoritative status lookup, asset/network/amount match, confirmation/finality policy and balanced ledger posting |
 | Reservation | Verified available funds, atomic sufficient-funds check, unique reservation and custody capability to honor it |
 | Delivery release | Payment evidence plus committed entitlement, correct order/deal state, clean immutable delivery revision and resource authorization |
@@ -357,7 +310,7 @@ Do not implement a success-returning mock adapter in production.
 | Refund | Authorized decision, remaining refundable amount, duplicate/over-refund prevention, confirmed provider outcome and compensating ledger entries |
 | Withdrawal | Verified withdrawable balance, approved destination/security controls, provider support, applicable operating requirements and reconciled transfer |
 
-Future ledger requirements:
+Financial invariants (implementation status in section 20):
 
 - Immutable balanced journals with unique business/provider references.
 - Exact USD and native-asset amounts; recorded exchange quote and fees.
@@ -369,9 +322,9 @@ Future ledger requirements:
 - Corrections use compensating entries, never edits to financial history.
 - A release gate requires validated configuration and operational evidence; a feature flag alone cannot establish readiness.
 
-Evaluate reputable providers against custody, deposits, escrow/reservation, payouts, network support, security, reconciliation, operational reliability and country availability. BTC, ETH, SOL, TRX and USDT ERC20/TRC20 are candidate requirements, not promises of support.
+NOWPayments Direct Payment REST and native USDC/Base settlement are selected. Admit exactly one additional evidence-approved conversion asset/network; no broader shortlist is authorized and no unverified option may be exposed.
 
-Provider selection, custody, jurisdiction, countries, fees, confirmation thresholds and refund/settlement policies remain deferred paid-release decisions. They do not block the pre-funding blueprint.
+Product policies are recorded in section 19; merchant capability, custody/finality semantics and production acceptance remain unresolved. Do not invent confirmation counts.
 
 ## 8. Migration and preservation strategy
 
@@ -405,7 +358,7 @@ Implement a pre-migration preservation command and migration-runner guard:
 - Preserve identifiers, prices/currency, category strings, fulfillment descriptions, statuses, timestamps and relationships in restricted durable storage.
 - Capture avatar references and synthetic-data cleanup candidates affected by `0002`; confirm the synthetic predicate excludes real accounts/content.
 - Pause writes for the final snapshot and upgrade window.
-- Apply unchanged historical migrations, then additive commerce migrations.
+- Validate historical migration hashes and resolve the existing 0002 working-tree difference before applying pending additive migrations.
 - Import legacy listings as unpublished drafts linked through a unique legacy-reference mapping. Preserve the original thread as forum content.
 - Keep unknown historical values in the import record for review. Do not manufacture delivery payloads, payment evidence, sales history or configured categories.
 - Original category strings remain preserved metadata until an administrator maps them.
@@ -537,13 +490,13 @@ Use expand/backfill/validate sequencing. Before reopening writes, a failed upgra
 
 ### Production HTTPS runner
 
-Add a repository-owned test runner during implementation that:
+The repository-owned production HTTPS runner is implemented; its intended acceptance behavior is:
 
 1. Runs the production build.
-2. Starts `next start` on loopback port `3000`.
+2. Starts `next start` on an allocated unused loopback port.
 3. Generates a short-lived certificate in a temporary directory with localhost/loopback SANs.
-4. Starts a Node HTTPS reverse proxy on `3443`, preserving host/origin and streaming behavior; set forwarded HTTPS correctly.
-5. Runs Playwright using `PLAYWRIGHT_BASE_URL=https://localhost:3443` and `PLAYWRIGHT_LOCAL_HTTPS=1`.
+4. Starts a Node HTTPS reverse proxy on an allocated unused port, preserving host/origin and streaming behavior.
+5. Runs Playwright using the allocated HTTPS origin in `PLAYWRIGHT_BASE_URL` and `PLAYWRIGHT_LOCAL_HTTPS=1`.
 6. Uses the same HTTPS origin for Better Auth and application configuration in authenticated test runs.
 7. Captures failures/traces, closes processes and removes temporary certificates.
 
@@ -583,7 +536,7 @@ Release only when:
 
 In addition:
 
-- Provider, custody, jurisdiction, countries and financial policies are approved.
+- Provider, custody and financial policies are approved.
 - Funding and balances derive exclusively from verified evidence.
 - Ledger, reservation, delivery, settlement, refund and withdrawal operations reconcile correctly.
 - Duplicate, delayed, reordered and failed provider events cannot double-credit or double-spend.
@@ -591,13 +544,13 @@ In addition:
 - Controlled real transactions verify enabled capabilities.
 - Monitoring and recovery procedures cover outstanding customer funds and provider/database divergence.
 
-**Remaining boundaries:** Saving `roadmap.md` awaits a mode that permits writes. Live services and the database require verification during implementation. Financial provider and operating-policy decisions remain blockers only for the future paid release. No further product clarification is needed to implement the pre-funding roadmap.
+**Remaining boundaries:** Current release and financial acceptance work is listed in sections 17–20. No current deployed state is inferred from old verification records.
 
 ## 11. Finalization and targeted additions
 
-The preceding remaining-boundaries sentence records the original planning status verbatim. **The file is now saved.** The original audit results remain historical results from this conversation; this documentation finalization does not claim a new application test run. Sections 11–16 supplement the preserved plan and are part of its acceptance criteria.
+Sections 11–16 retain product requirements and acceptance criteria. They are not an implementation inventory and do not authorize deferred enhancements during the deposit-only work.
 
-Authentication-gated discovery is an intentional, explicit user requirement: guests must reach sign-in/sign-up before accessing marketplace, seller, community or other product pages. Preserve the necessary auth/recovery and machine-endpoint exceptions in section 2. “Public profile” means information shared with eligible members, never anonymous visitors. Additional seller-profile and walkthrough screenshots were not available for direct inspection in this recovery; the user's descriptions establish their requirements. No reattachment is necessary to implement these described capabilities. Preserve GuildHarbor's original UI design freedom.
+Authentication-gated discovery is an intentional, explicit user requirement: guests must reach sign-in/sign-up before accessing marketplace, seller, community or other product pages. Preserve the necessary auth/recovery and machine-endpoint exceptions in section 2. “Public profile” means information shared with eligible members, never anonymous visitors. Additional seller-profile and walkthrough screenshots were not available for direct inspection in this recovery; the user's descriptions establish their requirements. No reattachment is necessary to implement these described capabilities. Preserve Outlaw's original UI design freedom.
 
 ## 12. Shopping cart and checkout
 
@@ -614,7 +567,7 @@ Authentication-gated discovery is an intentional, explicit user requirement: gue
 
 - Add `checkout_sessions`, immutable checkout lines and checkout-to-order links. A checkout contains one order per listing, including multi-seller checkouts; this preserves the existing one-order conversation, delivery and dispute boundaries. Do not combine different sellers' obligations into one order.
 - Preparing checkout validates every selected line server-side, snapshots listing revision, seller, USD price, applicable configured fees/discounts and delivery terms, and creates `AWAITING_PAYMENT` orders in one transaction. If any selected line is invalid, create none and return specific corrections. Display a fresh summary for explicit buyer consent after any price change.
-- The confirmed checkout has an expiring quote and idempotency key bound to buyer and payload. Set a 15-minute application quote lifetime, capped by any shorter provider quote lifetime. Expiry cancels unpaid orders only when there are no unresolved financial attempts; otherwise reconcile first.
+- The confirmed checkout needs an expiring quote and idempotency key bound to buyer and payload. The original blueprint proposed a maximum 15-minute application quote lifetime; this is not implemented or a provider rate guarantee, and the executable rate/freshness policy still needs confirmation. Expiry cancels unpaid orders only when there are no unresolved financial attempts; otherwise reconcile first.
 - Required wallet balance is the initial checkout funding source. Insufficient funds leads to the wallet top-up flow and then a fresh checkout validation; initiating or returning from top-up never marks an order paid.
 - Under row locks, recheck all lines, quote validity, buyer/seller eligibility and verified available wallet balance; atomically debit the checkout total and allocate balanced journal entries to each order. The entire checkout payment succeeds or none does. Unique checkout payment references prevent double charges across retries/tabs. A concurrent seller removal or price change requires a new confirmed quote.
 - Only committed verified ledger debit permits each order's `PAID` state and delivery entitlement. Client success URLs, submitted balances and unverified events cannot authorize payment. Fulfillment outbox jobs run after commit and are retryable without double delivery.
@@ -653,18 +606,18 @@ Phase 3 adds cart schema/services and Add to Cart; Phase 4 completes cart/review
 
 ## 14. Required production cryptocurrency wallet and account settings
 
-### Required deferred wallet
+### Required wallet — implementation authorized, execution disabled
 
-**A production cryptocurrency wallet is a REQUIRED future feature, not optional.** Users must eventually fund USD-denominated marketplace balances using supported cryptocurrencies. Explicit approval is still required before implementing it. Completing the pre-funding MVP is not completion of the full required platform.
+**A production cryptocurrency wallet remains required.** Implementation is authorized with USDC-denominated balances and USD reference pricing. The deposit flow is present but disabled and unverified; completing the pre-funding application is not completion of the financial platform.
 
-- Required routes: `/account/wallet`, `/account/wallet/deposit`, `/account/wallet/withdraw`, `/account/wallet/transactions`, and an owner-authorized transaction detail. Seller earnings/withdrawals reuse the canonical wallet and ledger rather than creating another customer identity/balance system.
-- Dashboard distinguishes verified available USD balance, pending incoming deposits and actual reserved amounts. Pending deposits are not spendable; reserved amounts exist only after real funded transactions. In MVP omit monetary widgets or show “Wallet not available yet,” never fabricated $0 accounts or frozen balances.
-- Top-up selects supported asset and explicit network, requests a USD amount, and shows provider-issued address/instructions, exact crypto quote, fees, expiry and confirmation status. Record asset atomic units, USD conversion basis and actual credited amount. Do not promise credit at a fictional fixed rate or instant finality.
+- Current routes: `/account/wallet`, `/account/wallet/top-up`, `/account/wallet/deposits/[commandId]`. Withdrawal and full transaction-history routes remain future work. Seller earnings/withdrawals reuse the canonical wallet and ledger rather than creating another customer identity/balance system.
+- Dashboard distinguishes available, pending and reserved USDC. Pending ledger funds mean held seller proceeds; unconfirmed deposits are separate observations, not booked balances. Reserved amounts require an actual obligation. In MVP omit monetary widgets or show “Wallet not available yet,” never fabricated $0 accounts or frozen balances.
+- Top-up selects supported asset and explicit network, requests a USD amount, and shows provider-issued address/instructions, exact crypto quote, fees, expiry and confirmation status. Record exact USDC units, USD reference, provider evidence and actual credited amount. Do not promise credit at a fictional fixed rate or instant finality.
 - Deposit lifecycle: created → awaiting transfer → detected → confirming → credited; expired/failed/exception branches retain evidence. Unique provider/chain transfer identifiers ensure one credit; late/partial/excess/wrong-network deposits enter the approved exception process. An observed transfer is not sufficient for credit before required finality and ledger reconciliation.
 - Withdrawals are required subject to approved operating/provider rules: select supported asset/network and validated destination, preview USD debit/crypto payout/fees, require recent authentication and configured 2FA controls, reserve verified available balance atomically, then submit idempotently. Distinguish pending review, submitted, confirmed, rejected and failed; release reservations only when nonpayment is established. No frontend private keys or seed phrases.
 - Reorgs or reversed evidence trigger holds, compensating journals, investigation and blocked further spending as appropriate; never silently rewrite balances. Reconciliation compares customer liabilities, ledger totals and provider custody evidence. An unexplained discrepancy blocks affected financial operations.
 - Required financial notifications cover deposit detection/confirmation/credit, withdrawal submission/completion/failure and refunds. Emit from committed events with deduplication; secure in-app records always persist. Optional channel preferences govern email delivery, not ledger/audit recording.
-- Provider shortlist/evaluation and jurisdiction-specific policies belong to the approved crypto phase; this document selects no provider and makes no current claim of custody/compliance approval.
+- Provider selection is NOWPayments Direct Payment REST. Merchant custody/capability and compliance approval are not established by that selection.
 
 ### MVP account feature timing
 
@@ -733,7 +686,7 @@ Test seller ownership, creative review, conflicting bookings, quote/rate changes
 
 ## 16. Expanded feature map and implementation acceptance additions
 
-This table complements every row of section 3; it does not claim inspection of unavailable images. “Described” means the user's supplied feature requirements, while “designed” identifies GuildHarbor implementation choices.
+This table complements every row of section 3; it does not claim inspection of unavailable images. “Described” means the user's supplied feature requirements, while “designed” identifies Outlaw implementation choices.
 
 | Evidence/capability | Domain, routes/components | Timing | Acceptance |
 |---|---|---|---|
@@ -745,7 +698,7 @@ This table complements every row of section 3; it does not claim inspection of u
 | Observed Email/Telegram/Discord/preferred contact controls | Contact fields and privacy settings | MVP | Persistent validated values; private by default; no implied delivery integration |
 | Observed notification area; described persistent toggles | `/settings/notifications`, notification outbox | MVP | Preferences persist and govern optional dispatch; failures visible |
 | Observed language/timezone; described last-seen privacy | Profile preferences and safe profile DTOs | MVP | Supported locale only, valid timezone, hidden presence respected everywhere |
-| Observed wallet/top-up/asset selection; described deposits/withdrawals/history | Required canonical wallet, ledger and financial notification events | Future crypto phase | Verified USD credits from supported crypto; reconciled withdrawals/history; no MVP financial execution |
+| Observed wallet/top-up/asset selection; described deposits/withdrawals/history | Required canonical wallet, ledger and financial notification events | Future crypto phase | Verified net USDC credits on Base; reconciled withdrawals/history; execution currently disabled |
 | Observed Telegram connect action | Verified external notification-channel connection | Later | Separate explicit opt-in/revocation; never activated by handle alone |
 | Observed escrow dashboard/form; described five-stage walkthrough | Deal creation, acceptance, chat, support, archive and How It Works | MVP nonfinancial; Paid funded stages | Immutable consent; awaiting-funding stop; dual confirmation and verified settlement later |
 | Observed affiliate tiers, milestones, event awards and earnings | Affiliate attribution, configuration and journal-backed awards | Later after Paid | Configured rules; duplicate prevention; no seeded rewards or fake revenue |
@@ -765,82 +718,80 @@ This table complements every row of section 3; it does not claim inspection of u
 | 4 | Persistent cart and single/multi-item review; notification preferences; no financial execution | Cross-device cart, stale price/unavailable item handling, no order/payment side effects |
 | 5 | Preserve exact pre-funding deal transitions; review eligibility excludes unfunded deals | No acceptance-to-funded shortcut or unfunded reviews |
 | 6 | Verify all new MVP acceptance criteria with the existing full gate | Authenticated E2E/accessibility and live nonfinancial integrations |
-| Future crypto/Paid | REQUIRED production wallet, verified USD balances, deposits/withdrawals/history, financial notifications, checkout/order payment, verified reviews/trust evaluation | Ledger reconciliation, concurrency/idempotency, verified-purchase moderation and actual approved transaction checks |
+| Future crypto/Paid | REQUIRED production wallet, verified USDC balances, deposits/withdrawals/history, financial notifications, checkout/order payment, verified reviews/trust evaluation | Ledger reconciliation, concurrency/idempotency, verified-purchase moderation and actual approved transaction checks |
 | Later enhancements | Advertising/promotions specification, original affiliate scope, Telegram notification integration | Booking/redemption concurrency, fair moderation, measured reporting, privacy and financial reconciliation |
 
 ### Final delivery boundary
 
-The complete blueprint is now delivered in this file. Implementation agents must execute phases 0–6 and their additions when authorized, preserving all original requirements. Future crypto funding/wallet/payment execution requires separate explicit approval; later paid advertising, incentives and promotion execution depend on that milestone. This handoff does not authorize destructive migration, custody deployment or a real financial transaction. Remaining provider, jurisdiction and rate/policy configuration decisions are explicit future release prerequisites rather than fabricated defaults. No further audit restart or reconfirmation of settled product requirements is needed.
+The complete blueprint is now delivered in this file. Implementation agents must execute phases 0–6 and their additions when authorized, preserving all original requirements. Financial implementation is authorized but production execution remains blocked; later paid advertising, incentives and promotion execution depend on the completed milestone. This handoff does not authorize destructive migration, custody deployment or a real financial transaction. Remaining provider and rate/policy configuration decisions are explicit future release prerequisites rather than fabricated defaults. No further audit restart or reconfirmation of settled product requirements is needed.
 
-## 17. Implementation execution record
+## 17. Current implementation inventory — 2026-09-29
 
-### 2026-09-20 — Phase 0 local foundation
+“Implemented” means present in source; deployment and acceptance are separate.
 
-- Read the complete specification (sections 1–16); baseline is `085b85c` on `main`, with only this roadmap initially untracked. Historical audit findings remain historical. README now points to this execution record; REPO_ANALYSIS is explicitly marked superseded.
-- Added guarded `db:inspect`, `db:preserve`, `db:verify-restore` and `db:migrate` commands, complete public-table preservation with checksums, private new-file permissions, journal-prefix/hash verification, transaction-scoped migration locking, changed-snapshot rejection, and mandatory preservation/restore receipt before `0002` on populated databases. Historical SQL is unchanged. See `MIGRATIONS.md` for full database/storage backup, restore, legacy recovery and rollback procedure. Legacy-to-commerce draft import remains a Phase 3 dependency, not completed here.
-- Added repository-owned `test:production`: production build, temporary SAN certificate, streaming HTTPS proxy, production server, Playwright and cleanup. No CSP or cookie safeguards were weakened.
-- Verification: lint and TypeScript passed; **72 tests / 11 files passed**, including disposable fresh/legacy preservation fixtures; production build passed; **12 production HTTPS browser tests passed** (desktop Chromium/mobile WebKit). Expected SIGTERM terminates the production server during runner cleanup.
-- Live database migration/backup/restore and authenticated deployed services are not verified. No live migration was performed. Additive cart/preferences/review-ordering fixtures will be extended as those schemas are implemented. Financial and later paid specifications in sections 7, 12–16 remain deferred in full.
+| Area | Source implementation | Remaining boundary |
+|---|---|---|
+| Identity/accounts | Better Auth, verification/onboarding/TOTP, password/session controls, profiles/privacy/preferences, centralized eligibility | Credentialed email/OAuth/security/browser acceptance |
+| Community | Persistent forums/threads/replies, edits/history, subscriptions, search, reputation/vouches and moderation | Deployed authorization/concurrency/accessibility acceptance; community feedback is not verified commerce |
+| Marketplace | Seller enrollment/storefront, separate taxonomy, listing revisions/media, discovery/favorites | Private storage/scanner integration acceptance; no invented stock or trust metrics |
+| Cart | Persistent quantity-one selections, availability/ownership checks, single/multi-item review | No payable checkout or quote consent |
+| Messaging/support | Persistent conversations, deduplicated sends, attachments, unread/mute/archive/block/report; cases and scoped staff evidence | Deployed flow acceptance; terminal deal chat is not made read-only |
+| Delivery | Private quarantine/scan/re-encode pipeline, seller encrypted text/files | Scanner/storage deployment; buyer payment path remains disabled |
+| Notifications/maintenance | In-app notices/preferences/read state, optional Resend outbox, cleanup, authenticated maintenance endpoint | Scheduler/provider/monitoring acceptance |
+| Agreements | Draft, invite, respondent accept/decline, cancellation, immutable terms/consent and chat | Stops at AWAITING_FUNDING; no reserved funds or funded settlement |
+| Administration | Community/member/seller/listing/category/support controls, audit and operations | No complete financial approvals/exception-resolution console |
+| Finance | Exact paired journals, commands/evidence, deposit code and wallet views, internal purchase/hold helpers, fee calculation | Hard-disabled and incompletely verified; see section 20 |
 
-### Phase 1 — Implementation complete; release acceptance remains open
+The latest implementation pass did not run tests, lint, type-check, build or live migrations. Historical results and their limited scope are consolidated in [VERIFICATION.md](VERIFICATION.md); no chronological “passed” claim below supersedes that boundary.
 
-Implementing shared auth/product boundaries and safe return navigation while retaining independent service authorization and existing community URLs.
+## 18. Signed-in home and current navigation
 
-Phase 1 verification update: auth/product route groups preserve established URLs; proxy redirects unauthenticated documents, including future commerce/wallet/advertising URLs, to sign-in. Product layout and existing queries/actions separately enforce eligibility. Return paths reject external/malformed/auth-loop destinations and pass through password/social/onboarding/TOTP flows. Default registration is now public while explicit private mode remains supported; no approval rows were changed. Lint, TypeScript, **82 tests / 12 files**, production build, and **12 production HTTPS cases** passed. Browser coverage includes guest HTML/RSC/metadata/API privacy, forged session cookies, 320px reflow, keyboard skip navigation, and Axe WCAG scans of six auth/recovery pages in Chromium/WebKit. Authenticated external-service browser checks remain unverified. Primary commerce navigation will be wired with its actual Phase 3 destinations; restricted-account support is tracked with Phase 5 support.
+The `/` route is implemented as marketplace discovery with a search/product-kind rail, listing rows and a seller/Top subforums rail. Rows use stored listings and authorized media, seller/profile/contact and cart actions. Independent reads run concurrently within Suspense. Seller onboarding/workspace routing and viewer-filtered forum ranking exist.
 
-### Phase 2 — Implementation complete; release acceptance remains open
+The current left rail shows Digital goods and Services, not active category links. Category browsing exists at `/marketplace`; restoring a category rail would be a separate requirement, not completed code. Current navigation is defined in `src/components/navigation-config.ts`. Deleted directory/rules/walkthrough pages must not be advertised as existing routes.
 
-Completing account privacy/preferences and permission-filtered community statistics before forum operations and account security controls.
+Responsive/accessibility and authenticated production-browser acceptance remain open for the current UI. Do not reimplement the homepage from an old handoff or introduce reference-site branding/data.
 
-Execution steering: at the user's request, stop repeated full-suite/build/production runs. Continue implementation and use compilation plus quick targeted checks at the end. Previously recorded verification remains scoped to the code at the time it ran, not later changes.
+## 19. Adopted financial policy and reference boundary
 
-Phase 2 implementation update (not a full verification claim): additive `0003_profile_preferences` preserves existing contacts and defaults shared Telegram/Discord/presence to hidden; profile writes validate supported locale, IANA timezone and configured preferred contact in an actor-authorized transaction. Member DTOs now omit credits/global likes, suppress private contacts/presence at SQL projection, filter thread/post/community-feedback counts by visible forums, and exclude revoked badges. Forum timestamps use the viewer's saved timezone. Added account summary, Better Auth session revocation, recovery-code replacement/challenge, and current/new-email OTP verification. Added post editing with optimistic timestamps, soft deletion preserving history/counters, owner/staff history, subscriptions with transactional in-app reply notices, reporting, lock/pin controls and audited report decisions. New transaction authorization rechecks actor eligibility, assigned permissions and private-forum rules. Email dispatch preferences/outbox and attachments remain Phase 4 dependencies; broader staff controls remain Phase 6. No new full-suite results are claimed after the user's verification steering.
+- NOWPayments server-only Direct Payment REST; no hosted checkout fallback.
+- Native USDC on Base settlement plus one verified conversion pay-in, subject to merchant approval. Balances are USDC; catalog prices and deposit request references can display USD. Quote the current equivalent, never assume parity.
+- Target pooled provider custody with the application's own ledger. Actual account backing/finality/settlement semantics remain unverified.
+- Credit actual reconciled net USDC after fees; ambiguous deposits require manual review.
+- Standard purchase pays seller pending internally at committed payment; escrow is optional and separately payer-authorized. Seller withdrawal hold is 24 hours after release.
+- Zero initial platform fees for deposits/purchases/ordinary escrow. Every completed withdrawal earns 1% of total debit, rounded down to micro-USDC; evidenced provider/network costs are also deducted.
+- Withdrawal security/limits: verified email, recent authentication, 2FA, destination-change hold 24 hours; 20 minimum / 500 per withdrawal / 1,000 rolling-day USDC including pending.
+- Explicit financial roles and independent approval; no self-approval.
+- Refund execution is deferred; post-withdrawal refund backing remains unresolved.
+- Reference interfaces guide presentation only. Their custody, two-confirmation, network, fee, instant-withdrawal and no-appeal claims are not adopted.
 
-### Application implementation pass — phases 3–5 and remaining phase 6 controls
+These are approved product directions, not merchant approval or enabled functionality. [Financial architecture](docs/financial-architecture.md) is the authoritative implementation/policy boundary.
 
-- Added additive commerce models and persisted seller enrollment/storefront, listing revisions, category administration, removal/restoration, seller suspension, catalog/search/filter routes, seller Information/Reviews tabs, truthful Trusted Seller discovery, favorites, cart and single/multi-seller review. Review creates no orders, balances, payment attempts or release entitlements. Protected text is encrypted with a dedicated deployment key.
-- Added direct messaging composition and request-ID deduplication, participant authorization, reply validation, inbox search/archive/read/mute/block/report controls and visible-page polling. Conversation attachments use the same private resource processing as forum and seller files.
-- Added persistent notification preferences, resource reauthorization, read actions, transactional notification/outbox records and authenticated maintenance delivery/cleanup. Email dispatch rechecks optional preferences and current account/resource eligibility; retries retain observable failures.
-- Added isolated ClamAV scanner worker, bounded ZIP inspection, checksum/size checks, quarantine, Sharp image re-encoding, resource-bound private downloads and text/image previews. Seller delivery remains owner-only; PDF is download-only. Actual scanner/private-storage deployment remains a release prerequisite.
-- Added draft/invite/accept/decline/cancel agreements, immutable sent snapshots/consent, dedicated conversations, active/archive pages and support linkage. Database state constraints contain only pre-funding states; acceptance stops at AWAITING_FUNDING. Support assignment gates audited evidence access and policy cancellation; restricted accounts retain account-help access.
-- Added account, notification, seller-order and buyer-order interfaces without fabricated transactions; user/forum/category/listing/seller moderation, support queue, deal metadata oversight, audit and operations screens; gated help/rules/privacy/pre-funding terms.
-- Added offline legacy import command preserving complete source records/checksums. Eligible mapped legacy records become unavailable unpublished drafts; missing enrollment/unknown values stay review records without fabricated policy consent, categories or financial history.
-- This pass intentionally does not add tests or run suites, builds, Playwright/E2E or accessibility scans, per the user's latest instruction. Compilation is checked selectively. Live integrations, real PostgreSQL concurrency/restore verification and authenticated browser acceptance are not claimed complete. All required future wallet/paid/review/advertising/promotion/affiliate specifications remain explicitly deferred.
+## 20. Core financial implementation — October 1, 2026
 
-### Remaining application workflow completion — current pass
+The later October 1 currency decision supersedes all historical USDC/Base policy references below: current settlement and the single-currency internal ledger are USDT on Ethereum (ERC-20). Source remains disabled pending merchant acceptance. No USD/USDT parity or USDC-to-USDT relabeling is assumed.
 
-- Added seller-managed listing image galleries using the existing resource attachments and private scan/re-encode pipeline. JPEG/PNG/WebP only; the twelve-image bound includes the completing upload and is enforced under a listing lock. Published images require an eligible signed-in viewer and eligible seller; draft images remain owner-only. Removal is authorized and audited, and protected delivery files remain a separate owner-only purpose.
-- Closed the upload-completion/cleanup race by holding the attachment row lock through the private-object write and rechecking cleanup state under lock. Re-encoded images must still fit the storage limit. Listing resource mutations use consistent seller/listing/attachment lock ordering.
-- Added `0008_deal_request_version` so participant request deduplication binds operation IDs to the submitted agreement version as well as deal/action. Support cancellation also appends agreement history; no new financial state or operation was added.
-- Completed group/badge assignment and revocation administration, configuration visibility, and member-activity pagination. Added notification pagination, support-case/queue/history pagination, and assigned-staff reply notifications. Notification visibility rechecks support assignment and permission without failing the whole inbox when a staff permission is revoked.
-- Preserved safe return destinations across sign-up, email verification and social entry. Added password-confirmed authenticator removal through Better Auth; recovery codes are invalidated by the auth provider. Conversation read-status failures now have an observable retry message.
-- Current verification: `bun run typecheck` passed after these changes; `git diff --check` passed. No tests were created or expanded, and no test suites, production builds, E2E runs or accessibility scans were run in this pass. Earlier phase results do not validate this new implementation.
-- Release gates remain open: additive migrations have not been applied to a live database; provider credentials/configuration, private storage/scanner deployment, authenticated notification dispatch, backup/restore exercises, concurrency and authenticated browser acceptance remain unverified. Phase 6 deployment/acceptance is not complete. The user explicitly deferred those broad verification activities during this implementation pass.
-- Still explicitly deferred: production wallet and custody, deposits/balances, payment execution, paid orders and protected buyer release, funded escrow, settlement/refunds/withdrawals, verified-purchase review qualification, paid promotion/advertising and affiliate incentives. Their specifications above remain intact; accepted deals stop at AWAITING_FUNDING.
+This section supersedes the September 29 audit and deposit-only current-state claims elsewhere in this historical roadmap. Implementation authorization is not activation authorization. [Architecture](docs/financial-architecture.md), [operations](docs/financial-operations.md), [verification](VERIFICATION.md) and [migration preservation](MIGRATIONS.md) describe the actual current boundaries.
 
-### Signed-in home, database recovery and acceptance follow-up — current pass
+### Connected, locally verified and disabled
 
-- Replaced the forum-first `/` page with authenticated marketplace discovery. Desktop uses a marketplace search/category rail, vertically stacked listing rows and a seller/forum rail; the document order reflows left rail → listings → right rail on narrow screens. Empty taxonomy and catalog states use stored data only and do not create placeholder categories or listings.
-- Extended the catalog projection with the seller's current private avatar route and the first ready, clean WebP listing-media attachment. Home rows render that authorized image boundary, title, description, current USD price, seller/profile link, seller avatar, cart action and seller-contact action. Owners receive an edit link instead of buyer actions; unavailable listings cannot be added to a cart but retain the authorized contact path.
-- Added the conditional seller card and `Open a store` route. Members without a seller profile go to onboarding; existing active, suspended or closed sellers go to the workspace. Onboarding redirects existing sellers, and suspended/closed sellers cannot reach listing creation or editing controls. Seller profile pages avoid offering self-messaging.
-- Added Top subforums ranked by the count of nondeleted discussions in forums the current viewer can read. Forums without visible discussions produce a useful empty state; private-forum names and counts are never queried into the result for an unauthorized viewer.
-- Independent home reads run concurrently inside a streaming boundary. The global route error boundary remains the retry path, and the home has an explicit discovery loading status. The header now exposes the required primary destinations and persistent cart count, uses a wider responsive breakpoint, and supports Escape-close with focus restoration for its mobile navigation.
-- Add-to-cart races now return an inline stale/unavailable result rather than throwing a page error. Repeated adds are idempotent without falsely advancing the cart version, and removing a missing item does not create a version change. Discovery mutations revalidate `/`; secure resource uploads infer only the supported allowlisted media types, show purpose-specific file guidance and surface the server's quarantine/scanner/storage reason. Concurrent gallery completion enforces the twelve-image limit under the listing lock and returns a clear conflict while leaving the extra upload quarantined. Notification email delivery now rechecks conversation mute state and assigned-support permission immediately before dispatch. Message composition rejects malformed usernames with an inline result at the service boundary.
-- The configured live database was inspected without printing row contents. It already records all nine reviewed migrations through `0008`, so no migration was pending or applied in this pass. A mode-0600 public-table snapshot and a PostgreSQL custom-format backup were written outside the repository, restored into disposable PostgreSQL 18, and compared: all 56 public-table records/checksums matched; the restored database contained nine migration records, eight noninternal triggers and sixteen public sequences. This is a local database restore rehearsal, not a provider disaster-recovery or private-object restore exercise.
-- Focused checks completed before the user's request to pause verification: 10 commerce/migration integration tests passed and 6 offline scanner parser/fail-closed tests passed. A production build completed. An authenticated production HTTPS browser attempt did not establish acceptance because the fixed-port runner reached stale development assets; 11 of 14 cases passed and the three failures were not accepted as product evidence. The runner now allocates unused ports, but it has not been rerun. The real-PostgreSQL concurrency suite was added and its environment-loading issue corrected, but it has not completed a successful run. Later edits in this pass have not received another lint, TypeScript, full-suite or build run, per the user's direct instruction to continue implementation without testing.
-- Release gates still open: R2/private-object backup and retrieval, deployed ClamAV scanner, authenticated Resend delivery, Upstash enforcement, scheduler invocation, real-PostgreSQL concurrency results, production authenticated browser acceptance, full authenticated accessibility/manual keyboard review and a target-provider restore rehearsal. No configured credentials for R2, scanner, Resend or Upstash were available. Phase 6 and the pre-funding release gate remain incomplete.
+- Exact USDT journals and balances; distinct selected-network pay-in and USDT settlement quantities.
+- Evidence-approved two-asset manifest; merchant/native-contract/fixed-rate/minimum checks; Direct Payment address, local QR, memo, exact amount, expiry, honest estimates and final credited USDT.
+- Authenticated callbacks, immutable encrypted raw evidence, exact-once backed net credit, retained-receipt/unidentified-command/known-payment maintenance and operator recovery without another POST. Sticky payment review and freeze on conflicting credited evidence.
+- Buyer-bound five-minute exact USDT quotes, explicit charge consent, canonical member/account locking, multi-seller atomic journals/orders/cart changes and safe retries.
+- Purchased-revision text/exact-file authorization, buyer/seller freeze checks, seller-owned encrypted manual fulfillment using protected order pages and existing messaging.
+- Maintenance-driven 24-hour seller pending-to-available settlement exactly once. External cash-out remains unavailable.
+- Additive `0017` marketplace migration and guarded `0018` USDT currency switch and isolated fresh-chain checks. Existing work, applied-history requirements and credentials are preserved.
 
-## 18. Signed-in member home and discovery layout — requested 2026-09-20
+### Required activation blockers
 
-**Status:** Implemented in the working tree. The `/` route is now the signed-in marketplace discovery page described below, with active-category links, current published listings, authorized listing media and seller avatars, conditional seller onboarding/workspace routing, and viewer-filtered Top subforums. The implementation and verification scope are recorded in section 17. Phase 6 remains open for the release gates listed there.
+1. Resolve empty fixed-rate currency list and custody balance 403; verify merchant outcome/conversion settings, native USDT/Ethereum (ERC-20) final net settlement, BTC conversion, account fees/minimums, usable backing semantics and real signed IPNs. Currency metadata/merchant selection/pair minimums were read successfully; they do not prove settlement capability. No pay-in has been approved for exposure.
+2. Supply missing server-only IPN/ticker/callback/evidence/delivery configuration and evidence-approved manifest; establish secure evidence/key ownership and the bounded listing-token/operator recovery process.
+3. The configured database now has `0017` and `0018`: applied hashes matched, a full private backup was restored and rehearsed, and existing public records were preserved. Other deployment databases still require their own migration acceptance. Financial execution remains disabled.
+4. Verify deployed authenticated maintenance/runtime, alerts and named reconciliation/incident operators; run the actual authenticated buyer/seller journey and provider acceptance with explicit authorization. Then obtain explicit activation approval.
 
-Use the screenshot attached to the current user conversation as **layout inspiration**, not as product content or branding. Keep GuildHarbor branding and the established authentication gate. The screenshot's listed goods, seller claims, balance, financial promises and marketplace copy are not source data for this product.
+### Optional future scope
 
-- Make `/` the signed-in marketplace discovery starting page. Use a three-column desktop layout: category/navigation rail on the left, a central vertical list of individual product rows, and a right rail. Reflow the same content into a usable single-column mobile layout without horizontal scrolling; retain keyboard access and visible focus.
-- In the left rail, show marketplace categories and useful search/filter entry points. The user permits **lorem ipsum placeholder category copy for now**; keep that clearly provisional and do not present placeholder categories as working filters or seed them into persisted taxonomy. Use actual active categories for functional links when available.
-- Each central row shows a product image at its left, title and concise description, price, seller name and seller avatar/profile link, an accessible **Add to cart** action, and an accessible mail icon for **Contact seller**. Reuse current authorized catalog, cart and message flows. Respect availability and ownership: do not offer a buyer action on the seller's own listing or on an unavailable listing. Do not imply that checkout, payment or delivery is live.
-- In the right rail, include a **Start selling on GuildHarbor** card with an **Open a store** button linked to the actual seller onboarding/workspace route appropriate to the signed-in member. Use accurate fee and payment language only; do not copy the screenshot's fee or instant withdrawal claims.
-- Directly below the seller card, add a compact **Top subforums** component with a clear link to `/forums`. Rank a small set of forums by real activity or counts, explain the ranking accurately, and include only forums visible to the current viewer. Link each item to its subforum. Provide a meaningful empty state when no permitted forums exist. This gives marketplace visitors an immediate invitation into the forum without displacing the product list.
-- Load independent home data concurrently, keep server-rendered discovery content and small client action boundaries, and reuse existing design tokens/components. Extend read projections only with fields needed by the rows; authorize product images and seller avatars through their existing file boundaries. Provide loading/empty/error states and proportionate tests for the new behavior.
+External withdrawals, funded escrow, refunds, verified reviews/trust metrics, affiliates, advertising, advanced history/analytics and a financial console are not implemented by this pass. Their historical blueprint requirements do not block this narrower core marketplace release. They need their own authorization and acceptance.
 
-**Acceptance:** At desktop width, the left categories, center product rows and right selling/forum rail are all visible and ordered as above. At narrow mobile widths, all actions and content remain accessible. Rows render from current listings rather than the screenshot; links and actions reach working authorized routes. Top subforums never leak private-forum names or counts. No paid transaction, false seller qualification or unsupported financial claim is introduced.
+Latest October 1 provider follow-up supersedes earlier 403/unknown-primary status: user IP whitelisting restored `/balance` HTTP 200, reporting 2.477743 USDT/ERC-20 available and zero pending at the check. The authenticated dashboard explicitly showed USDT on ETH as Primary. Fixed-rate currency availability remains empty; real payment/conversion/net-fee/IPN and configuration/operational acceptance remain outstanding. Both financial gates remain disabled. See FINANCIAL_HANDOFF.md and current VERIFICATION.md.

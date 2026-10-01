@@ -137,7 +137,7 @@ export default async function MemberSection({
       <Link href={`/members/${profile.username}`} className="text-category">
         {profile.displayName}
       </Link>
-      <h1 className="text-display-sm font-extrabold capitalize">{section}</h1>
+      <h1 className="text-display-sm capitalize">{section}</h1>
       {content}
       <nav aria-label="Activity pagination" className="flex gap-3">{page > 1 && <Link href={`?page=${page - 1}`}>Previous</Link>}{hasMore && <Link href={`?page=${page + 1}`}>Next</Link>}</nav>
     </div>

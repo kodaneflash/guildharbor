@@ -1,19 +1,24 @@
 import localFont from "next/font/local";
 
-export const fkGrotesk = localFont({
+export const openRunde = localFont({
   src: [
     {
-      path: "../../public/morpho/fk-grotesk-light.woff2",
-      weight: "300",
-      style: "normal",
-    },
-    {
-      path: "../../public/morpho/fk-grotesk-regular.woff2",
+      path: "../../public/family-wallet/open-runde-regular.woff",
       weight: "400",
       style: "normal",
     },
+    {
+      path: "../../public/family-wallet/open-runde-medium.woff",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "../../public/family-wallet/open-runde-semibold.woff",
+      weight: "600",
+      style: "normal",
+    },
   ],
-  variable: "--font-fk-grotesk",
+  variable: "--font-open-runde",
   display: "swap",
   fallback: ["Arial", "sans-serif"],
   preload: true,

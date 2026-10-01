@@ -31,6 +31,10 @@ const environmentSchema = z.object({
   UPSTASH_REDIS_REST_URL: optionalUrl,
   UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
   MAINTENANCE_SECRET: z.string().min(24).optional(),
+  TELEGRAM_BOT_USERNAME: z.string().regex(/^[A-Za-z0-9_]{5,32}$/).optional(),
+  TELEGRAM_BOT_TOKEN: z.string().min(30).optional(),
+  TELEGRAM_BRIDGE_SECRET: z.string().min(32).optional(),
+  TELEGRAM_NOTIFICATIONS_ENABLED: z.enum(["true", "false"]).default("false").transform(value => value === "true"),
 });
 
 const parsedEnvironment = environmentSchema.safeParse(process.env);

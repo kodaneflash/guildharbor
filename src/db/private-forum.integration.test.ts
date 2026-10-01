@@ -1,8 +1,6 @@
 // @vitest-environment node
 import { readFile } from "node:fs/promises";
 import sharp from "sharp";
-import { renderToStaticMarkup } from "react-dom/server";
-import MembersPage from "@/app/(product)/members/page";
 import { createHash, createHmac } from "node:crypto";
 import { PGlite } from "@electric-sql/pglite";
 import { citext } from "@electric-sql/pglite/contrib/citext";
@@ -165,7 +163,7 @@ async function register(username: string) {
     otp: context.otps.get(email),
   });
   expect(verify.response.status, JSON.stringify(verify.json)).toBe(200);
-  expect(verify.cookie).toContain("guildharbor.session_token=");
+  expect(verify.cookie).toContain("outlaw.session_token=");
   return { id: signup.json.user.id as string, cookie: verify.cookie };
 }
 function asUser(cookie = "") {
@@ -274,10 +272,8 @@ describe.sequential(
           .where(eq(schema.userRoles.userId, member.id)),
       ).toHaveLength(1);
     });
-    it("lists only approved active members and ignores client-supplied approval", async () => {
+    it("ignores client-supplied approval", async () => {
     asUser(admin.cookie);
-    const html = renderToStaticMarkup(await MembersPage({ searchParams: Promise.resolve({}) }));
-    expect(html).toContain("operator"); expect(html).not.toContain("applicant");
     const result = await authRequest("/sign-up/email", { email: "tampered@example.test", name: "Tampered", username: "tampered", password, membershipStatus: "approved", accountStatus: "active" });
     expect(result.response.status).toBe(200);
     const [user] = await database.select().from(schema.users).where(eq(schema.users.id, result.json.user.id));
@@ -345,8 +341,6 @@ describe.sequential(
         context.mode = "public";
         asUser(member.cookie);
         expect((await getAccess()).allowed).toBe(true);
-        const html = renderToStaticMarkup(await MembersPage({ searchParams: Promise.resolve({}) }));
-        expect(html).toContain("applicant");
         const thread = await createThread({
           actorId: member.id, forumId, title: "Public mode member thread", type: "discussion",
           content: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "Persist public member content" }] }] },

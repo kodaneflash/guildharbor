@@ -81,7 +81,7 @@ export function SecurityForm({
   return (
     <div className="space-y-5">
       <form action={passwordAction} className="surface space-y-4 p-6">
-        <h2 className="text-heading-lg font-bold">Change password</h2>
+        <h2 className="text-heading-lg">Change password</h2>
         <label className="block text-body-sm">
           Current password
           <input
@@ -115,7 +115,7 @@ export function SecurityForm({
         </button>
       </form>
       <section className="surface space-y-4 p-6">
-        <h2 className="text-heading-lg font-bold">Two-factor authentication</h2>
+        <h2 className="text-heading-lg">Two-factor authentication</h2>
         {isEnabled ? (
           <form action={disableAction} className="space-y-4"><p className="text-trust">An authenticator is enrolled.</p><p>Disabling removes the additional sign-in check and invalidates its recovery codes.</p><label className="block">Confirm password<input className="field mt-2" name="password" type="password" autoComplete="current-password" required /></label><button className="button-secondary" disabled={disablePending}>Disable authenticator</button></form>
         ) : (
@@ -124,7 +124,7 @@ export function SecurityForm({
               <>
                 <p className="text-body-sm text-text-muted">
                   In your authenticator, add a time-based account named
-                  GuildHarbor using this setup key. Keep it private.
+                  Outlaw using this setup key. Keep it private.
                 </p>
                 <code className="block break-all rounded border border-border p-3">
                   {new URL(uri).searchParams.get("secret")}
