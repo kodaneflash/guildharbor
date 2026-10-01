@@ -41,14 +41,14 @@ export async function saveListing(input: unknown) {
       const [file] = protectedFileId ? await tx.select().from(attachments).where(and(eq(attachments.id, protectedFileId), eq(attachments.state, "ready"), eq(attachments.scanStatus, "clean"), eq(attachments.ownerId, access.user.id), eq(attachments.purpose, "listing_delivery"), eq(attachments.resourceId, current?.id ?? ""))).for("share") : [];
       if (!file) return { error: "A scanned, approved delivery file is required before publishing." };
     }
-    const fields = { title: data.title, slug: listingSlug(data.title), description: data.description, categoryId: data.categoryId, kind: data.kind, fulfillmentMode: data.fulfillmentMode, deliveryTerms: data.deliveryTerms, priceCents: data.price, available: data.available, status: data.status, version: (current?.version ?? 0) + 1, updatedAt: new Date() };
+    const fields = { title: data.title, slug: listingSlug(data.title), description: data.description, categoryId: data.categoryId, kind: current?.kind ?? "digital", fulfillmentMode: data.fulfillmentMode, deliveryTerms: data.deliveryTerms, priceCents: data.price, available: data.available, status: data.status, version: (current?.version ?? 0) + 1, updatedAt: new Date() };
     const [listing] = current ? await tx.update(listings).set(fields).where(eq(listings.id, current.id)).returning() : await tx.insert(listings).values({ ...fields, sellerId: access.user.id }).returning();
     await tx.insert(listingRevisions).values({ listingId: listing.id, version: listing.version, title: listing.title, description: listing.description, kind: listing.kind, priceCents: listing.priceCents, fulfillmentMode: listing.fulfillmentMode, deliveryTerms: listing.deliveryTerms, protectedText, protectedFileId });
     await tx.insert(domainAuditEvents).values({ actorId: access.user.id, resourceType: "listing", resourceId: listing.id, action: `listing.${listing.status}`, reason: "Seller saved listing revision", metadata: { version: listing.version } });
     return { id: listing.id, slug: listing.slug };
   });
 }
-export async function catalog(options: { query?: string; categoryId?: string; kind?: string; page?: number; sort?: string; sellerId?: string; favorites?: boolean } = {}) {
+export async function catalog(options: { query?: string; categoryId?: string; page?: number; sort?: string; sellerId?: string; favorites?: boolean } = {}) {
   const access = await requireMember();
   const database = createReadDatabase();
   const favoriteIds = options.favorites ? await database.select({ id: listingFavorites.listingId }).from(listingFavorites).where(eq(listingFavorites.userId, access.user.id)) : null;
@@ -62,7 +62,7 @@ export async function catalog(options: { query?: string; categoryId?: string; ki
         and ${attachments.state} = 'ready' and ${attachments.scanStatus} = 'clean'
         and ${attachments.mediaType} = 'image/webp'
       order by ${attachments.createdAt}, ${attachments.id} limit 1)`,
-  }).from(listings).innerJoin(sellerProfiles, eq(sellerProfiles.userId, listings.sellerId)).innerJoin(users, eq(users.id, sellerProfiles.userId)).leftJoin(profiles, eq(profiles.userId, users.id)).where(and(eq(listings.status, "published"), eq(sellerProfiles.status, "active"), communityMemberFilter(), options.query ? or(ilike(listings.title, `%${options.query.slice(0, 200)}%`), ilike(listings.description, `%${options.query.slice(0, 200)}%`)) : undefined, options.categoryId ? eq(listings.categoryId, z.uuid().parse(options.categoryId)) : undefined, ["digital", "service"].includes(options.kind ?? "") ? eq(listings.kind, options.kind ?? "") : undefined, options.sellerId ? eq(listings.sellerId, options.sellerId) : undefined, favoriteIds ? inArray(listings.id, favoriteIds.map(item => item.id)) : undefined)).orderBy(options.sort === "price" ? asc(listings.priceCents) : desc(listings.createdAt), desc(listings.id)).limit(24).offset((Math.max(1, options.page ?? 1) - 1) * 24);
+  }).from(listings).innerJoin(sellerProfiles, eq(sellerProfiles.userId, listings.sellerId)).innerJoin(users, eq(users.id, sellerProfiles.userId)).leftJoin(profiles, eq(profiles.userId, users.id)).where(and(eq(listings.status, "published"), eq(sellerProfiles.status, "active"), communityMemberFilter(), options.query ? or(ilike(listings.title, `%${options.query.slice(0, 200)}%`), ilike(listings.description, `%${options.query.slice(0, 200)}%`)) : undefined, options.categoryId ? eq(listings.categoryId, z.uuid().parse(options.categoryId)) : undefined, options.sellerId ? eq(listings.sellerId, options.sellerId) : undefined, favoriteIds ? inArray(listings.id, favoriteIds.map(item => item.id)) : undefined)).orderBy(options.sort === "price" ? asc(listings.priceCents) : desc(listings.createdAt), desc(listings.id)).limit(24).offset((Math.max(1, options.page ?? 1) - 1) * 24);
 }
 export async function listingDetail(id: string) {
   await requireMember(); if (!z.uuid().safeParse(id).success) return null;

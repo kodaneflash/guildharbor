@@ -6,7 +6,7 @@ export const listingSchema = z.object({
   id: z.uuid().optional(), version: z.coerce.number().int().positive().optional(),
   title: z.string().trim().min(5).max(160), description: z.string().trim().min(20).max(20000),
   categoryId: z.union([z.uuid(), z.literal("")]).transform(value => value || null),
-  kind: z.enum(["digital", "service"]), fulfillmentMode: z.enum(["text", "file", "manual"]),
+  fulfillmentMode: z.enum(["text", "file", "manual"]),
   deliveryTerms: z.string().trim().min(10).max(5000), price: usdPrice,
   protectedText: z.string().max(100000).default(""), available: z.boolean(),
   status: z.enum(["draft", "published", "paused", "archived"]),
