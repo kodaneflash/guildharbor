@@ -1,5 +1,7 @@
 # Core marketplace financial operations
 
+Deposit creation uses PostgreSQL rather than Redis for its request limit: five new deposit request identities per member in ten minutes. The check and command insertion share the existing member lock and transaction; existing request retries remain recoverable without consuming another slot. No new table, migration or service is required. This replaces the Redis prerequisite only for deposit creation; other existing site rate limits are unchanged.
+
 ## Current payment setup — October 1, 2026
 
 Owner-authorized activation enables both source gates. Deposits now request ordinary rates (`is_fixed_rate=false`, `is_fee_paid_by_user=false`); capability checks use the ordinary currency list and ordinary-rate pair minimum, not the empty fixed-rate list. Exact provider payment instructions, expiry, pay-in identity, actual final net USDT, duplicate protection and available custody backing checks remain enforced. Final credited USDT may differ from estimates.

@@ -234,6 +234,21 @@ it("never resubmits an uncertain provider creation and recovers its original ide
   expect(context.creations).toBe(count + 1);
 });
 
+it("limits new deposit identities in the database without blocking retries or other members", async () => {
+  const buyer = await member();
+  const requests = Array.from({ length: 5 }, () => ({ requestId: randomUUID(), priceUsd: "20", currency: "usdterc20" }));
+  const original = await createDeposit(buyer, requests[0]);
+  for (const request of requests.slice(1)) await createDeposit(buyer, request);
+  const creations = context.creations;
+  await expect(createDeposit(buyer, { requestId: randomUUID(), priceUsd: "20", currency: "usdterc20" })).rejects.toThrow("Too many new deposit requests");
+  expect(await createDeposit(buyer, requests[0])).toEqual({ id: original.id });
+  expect(context.creations).toBe(creations);
+  const commands = await db.select().from(schema.financialCommands).where(eq(schema.financialCommands.ownerId, buyer));
+  expect(commands).toHaveLength(5);
+  await createDeposit(await member(), { requestId: randomUUID(), priceUsd: "20", currency: "usdterc20" });
+  expect(context.creations).toBe(creations + 1);
+});
+
 it.each(["wrong_asset", "wrong_payin_finished", "wrong_asset_confirmed", "usdc_settlement", "usdt_wrong_network", "partial", "overpaid", "invalid_net", "unbacked"])("does not credit %s evidence", async condition => {
   const buyer = await member();
   const deposit = await createDeposit(buyer, { requestId: randomUUID(), priceUsd: "20", currency: "usdterc20" });

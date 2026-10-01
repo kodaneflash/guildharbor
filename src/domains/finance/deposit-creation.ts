@@ -1,6 +1,6 @@
 import "server-only";
 import { createHash } from "node:crypto";
-import { and, eq } from "drizzle-orm";
+import { and, eq, gte } from "drizzle-orm";
 import { z } from "zod";
 import { financialCommands, financialDepositRequests, financialDeposits } from "@/db/schema";
 import { withTransaction } from "@/db/transaction";
@@ -17,6 +17,9 @@ import { financialPolicy } from "./policy";
 
 export class DepositUnavailable extends Error {
   constructor(message: string, readonly safeToChange = false) { super(message); }
+}
+export class DepositRateLimited extends DepositUnavailable {
+  constructor() { super("Too many new deposit requests. Please wait up to 10 minutes before trying again.", true); }
 }
 const hash = (body: string) => createHash("sha256").update(body).digest("hex");
 export async function persistDepositInstructions(tx: FinanceTransaction, commandId: string, ownerId: string, payload: unknown) {
@@ -67,6 +70,15 @@ export async function createDeposit(ownerId: string, untrusted: unknown) {
       const unresolved = await tx.select({ id: financialCommands.id }).from(financialCommands).where(and(
         eq(financialCommands.ownerId, ownerId), eq(financialCommands.kind, "deposit"), eq(financialCommands.state, "outcome_unknown"))).limit(1);
       if (unresolved.length) throw new DepositUnavailable("An earlier deposit request needs recovery. Check your wallet before creating another.");
+      // The existing member lock serializes this check with insertion, including
+      // requests from other tabs/servers. Retries keep their original identity
+      // and do not consume another slot or block recovery of a submitted payment.
+      const now = await financialNow(tx);
+      const recent = await tx.select({ id: financialCommands.id }).from(financialCommands).where(and(
+        eq(financialCommands.ownerId, ownerId), eq(financialCommands.kind, "deposit"),
+        gte(financialCommands.createdAt, new Date(now.getTime() - 600_000)),
+      )).limit(5);
+      if (recent.length >= 5) throw new DepositRateLimited();
     }
     return prepareCommand(tx, { ownerId, requestId: input.requestId, kind: "deposit", requestDigest });
   });
